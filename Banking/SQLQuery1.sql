@@ -71,7 +71,7 @@ CREATE TABLE Merchant
 	City NVARCHAR(150) NOT NULL,
 	CountryCode CHAR(2) NOT NULL,
 	MCCCode CHAR(4) NOT NULL,
-
+	/*	AccountNumber VARCHAR(26) NOT NULL CONSTRAINT UQ_Account_AccountNumber UNIQUE (AccountNumber) */
 	CONSTRAINT PK_Merchant PRIMARY KEY (MerchantId),
 	CONSTRAINT FK_Merchant_MerchantCategoryCode FOREIGN KEY (MCCCode) REFERENCES MerchantCategoryCode(MCCCode)
 );
@@ -196,28 +196,6 @@ CREATE TABLE OverdraftInterest
 
 );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 CREATE TABLE CardStatus
 (
 	CardStatusId BIGINT IDENTITY(1,1) NOT NULL,
@@ -226,7 +204,8 @@ CREATE TABLE CardStatus
 
 	CONSTRAINT PK_CardStatus PRIMARY KEY (CardStatusId),
 	CONSTRAINT UQ_CardStatus_Code UNIQUE (Code),
-)
+);
+
 CREATE TABLE Card
 (
 	CardId BIGINT IDENTITY(1,1) NOT NULL,
@@ -241,7 +220,6 @@ CREATE TABLE Card
 	ActivatedAt Date NULL,
 	ExpiresAt DATE NOT NULL,
 	
-
 
 	CONSTRAINT PK_Card PRIMARY KEY (CardId),
 	CONSTRAINT FK_Card_Customer FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId),
@@ -264,22 +242,53 @@ CREATE TABLE CardSecurity
 
 	CONSTRAINT PK_CardAuthorization PRIMARY KEY (CardAuthorizationId),
 	CONSTRAINT FK_CardAuthorization FOREIGN KEY (CardId) REFERENCES Card(CardId),
-	CONSTRAINT CK_CardSecurity_PinRetryCountCHECK(PinRetryCount BETWEEN 0 AND 3) /*PIN entry limit: 0–3 attempts */
+	CONSTRAINT CK_CardSecurity_PinRetryCount CHECK(PinRetryCount BETWEEN 0 AND 3) /*PIN entry limit: 0–3 attempts */
 );
-/*
+
 CREATE TABLE CardTransactionAuthorizationStatus
 (
 	CardTransactionAuthorizationStatusId INT IDENTITY(1,1) NOT NULL,
-	Code NOT NULL
+	Code NVARCHAR(50) NOT NULL CONSTRAINT UQ_CardTransactionAuthorizationStatus_Code UNIQUE (Code),
+	Name VARCHAR(100) NOT NULL,
+
+	CONSTRAINT PK_CardTransactionAuthorizationStatus PRIMARY KEY (CardTransactionAuthorizationStatusId)
 );
+
 CREATE TABLE CardTransactionAuthorization
 (
+
 	CardTransactionAuthorizationId BIGINT IDENTITY(1,1) NOT NULL,
+	CardId BIGINT NOT NULL,
 	MerchantId INT NOT NULL,
-	MCCCode CHAR(4) NOT NULL,
+	Amount DECIMAL(18,2) NOT NULL CONSTRAINT CK_CardTransactionAuthorization_Amount CHECK (Amount > 0),
+	CardTransactionAuthorizationStatusId INT NOT NULL,
+	AuthorizedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_CardTransactionAuthorization_AuthorizationDate DEFAULT SYSDATETIMEOFFSET(), /* Date and time when the transaction was authorized by the bank */
+	CreatedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_CardTransactionAuthorization_CreatedAt DEFAULT SYSDATETIMEOFFSET(), /* Date and time when the record was created in the database */
+	UpdatedAt DATETIMEOFFSET(0) NULL, /* Date and time when the record was last updated */
+	AuthorizationCode CHAR(6) NOT NULL CONSTRAINT UQ_CardTransactionAuthorization_AuthorizationCode UNIQUE (AuthorizationCode),
+	CurrencyCode CHAR(3) NOT NULL,
+	TransactionId BIGINT NULL,
+
 
 	CONSTRAINT PK_CardTransactionAuthorization PRIMARY KEY (CardTransactionAuthorizationId),
+	CONSTRAINT FK_CardTransactionAuthorization_Card FOREIGN KEY (CardId) REFERENCES Card(CardId),
 	CONSTRAINT FK_CardTransactionAuthorization_Merchant FOREIGN KEY (MerchantId) REFERENCES Merchant(MerchantId),
-	CONSTRAINT FK_CardTransactionAuthorization_MCCCode FOREIGN KEY (MCCCode) REFERENCES MerchantCategoryCode(MCCCode),
+	CONSTRAINT FK_CardTransactionAuthorization_CardTransactionAuthorizationStatus FOREIGN KEY (CardTransactionAuthorizationStatusId) REFERENCES CardTransactionAuthorizationStatus(CardTransactionAuthorizationStatusId),
+	CONSTRAINT FK_CardTransactionAuthorization_Currency FOREIGN KEY (CurrencyCode) REFERENCES Currency(CurrencyCode),
+	CONSTRAINT FK_CardTransactionAuthorization_Transaction FOREIGN KEY (TransactionId) REFERENCES AccountTransaction(TransactionId),
+	CONSTRAINT CK_CardTransactionAuthorization_AuthorizationCode CHECK (AuthorizationCode NOT LIKE '%[^0-9]%')
 );
-*/
+
+CREATE TABLE CardTransactionAuthorizationStatusHistory
+(
+	CardTransactionAuthorizationStatusHistoryId INT IDENTITY(1,1) NOT NULL,
+	CardTransactionAuthorizationId BIGINT NOT NULL,
+	OldStatusId INT NULL,
+	NewStatusId INT NOT NULL,
+	ChangedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_CardTransactionAuthorizationStatusHistory_ChangedAt DEFAULT SYSDATETIMEOFFSET(),
+
+	CONSTRAINT PK_CardTransactionAuthorizationStatusHistory PRIMARY KEY (CardTransactionAuthorizationStatusHistoryId),
+	CONSTRAINT FK_CardTransactionAuthorizationStatusHistory_OldStatus FOREIGN KEY (OldStatusId) REFERENCES CardTransactionAuthorizationStatus(CardTransactionAuthorizationStatusId),
+	CONSTRAINT FK_CardTransactionAuthorizationStatusHistory_NewStatus FOREIGN KEY (NewStatusId) REFERENCES CardTransactionAuthorizationStatus(CardTransactionAuthorizationStatusId),
+	CONSTRAINT FK_CardTransactionAuthorizationStatusHistory_CardTransactionAuthorization FOREIGN KEY (CardTransactionAuthorizationId) REFERENCES CardTransactionAuthorization(CardTransactionAuthorizationId),
+);
