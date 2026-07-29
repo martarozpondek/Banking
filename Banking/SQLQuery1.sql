@@ -292,3 +292,183 @@ CREATE TABLE CardTransactionAuthorizationStatusHistory
 	CONSTRAINT FK_CardTransactionAuthorizationStatusHistory_NewStatus FOREIGN KEY (NewStatusId) REFERENCES CardTransactionAuthorizationStatus(CardTransactionAuthorizationStatusId),
 	CONSTRAINT FK_CardTransactionAuthorizationStatusHistory_CardTransactionAuthorization FOREIGN KEY (CardTransactionAuthorizationId) REFERENCES CardTransactionAuthorization(CardTransactionAuthorizationId),
 );
+
+CREATE TABLE ExchangeRate
+(
+	ExchangeRateId INT IDENTITY(1,1) NOT NULL,
+	CurrencyCode CHAR(3) NOT NULL,
+	ExchangeRateDate DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_ExchangeRate_ExchangeRateDate DEFAULT SYSDATETIMEOFFSET(),
+	CurrencyConversionRate DECIMAL(10, 4) NOT NULL,
+	Multiplier DECIMAL(10,4) NOT NULL CONSTRAINT DF_ExchangeRate_Multiplier DEFAULT (1), 
+	CreatedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_ExchangeRate_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+
+	CONSTRAINT PK_ExchangeRate PRIMARY KEY (ExchangeRateId),
+	CONSTRAINT FK_ExchangeRate_Currency FOREIGN KEY (CurrencyCode) REFERENCES Currency(CurrencyCode),
+	CONSTRAINT UQ_ExchangeRate_CurrencyDate UNIQUE (CurrencyCode, ExchangeRateDate),
+	CONSTRAINT CK_ExchangeRate_Rate CHECK (CurrencyConversionRate > 0),
+	CONSTRAINT CK_ExchangeRate_Multiplier CHECK (Multiplier > 0)
+);
+
+CREATE TABLE LoanStatus
+(
+	LoanStatusId BIGINT IDENTITY(1,1) NOT NULL,
+	Code VARCHAR(30) NOT NULL, 
+    Name NVARCHAR(100) NOT NULL,
+
+	CONSTRAINT PK_LoanStatus PRIMARY KEY (LoanStatusId),
+	CONSTRAINT UQ_LoanStatus_Code UNIQUE (Code)
+);
+
+
+CREATE TABLE InterestRateType
+(
+	InterestRateTypeId BIGINT IDENTITY(1,1) NOT NULL,
+	Code VARCHAR(30) NOT NULL, 
+    Name NVARCHAR(100) NOT NULL,
+
+	CONSTRAINT PK_InterestRateType PRIMARY KEY (InterestRateTypeId),
+	CONSTRAINT UQ_InterestRateType_Code UNIQUE (Code)
+);
+
+CREATE TABLE Loan
+(
+	LoanId BIGINT IDENTITY(1,1) NOT NULL,
+	CurrencyCode CHAR(3) NOT NULL,
+	LoanStatusId BIGINT NOT NULL,
+	CustomerId UNIQUEIDENTIFIER NOT NULL,
+	InterestRateTypeId BIGINT NOT NULL,
+	Amount DECIMAL(18,2) NOT NULL,
+	CurrentMonthlyPayment DECIMAL(18,2) NOT NULL,
+	LoanTermMonth INT NOT NULL,
+	Principal DECIMAL(18,2) NOT NULL, /*kapita³ */
+	OutstandingPrincipal DECIMAL(18,2) NOT NULL, /* pozosta³o do sp³acenia kapita³u */
+	AnnualInterestRate DECIMAL(5,2) NOT NULL, /*odsetki*/
+	AccruedInterest DECIMAL(18,2) NOT NULL DEFAULT(0), /*naliczone odsetki, które jeszcze nie zosta³y pobrane*/
+	NextInstallmentDate DATE NOT NULL,
+	ActiveFrom DATE NOT NULL,
+	ActiveTo DATE NULL,
+	CreatedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_Loan_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+	UpdatedAt DATETIMEOFFSET(0) NULL,
+
+	CONSTRAINT PK_Loan PRIMARY KEY (LoanId),
+	CONSTRAINT FK_Loan_Currency FOREIGN KEY (CurrencyCode) REFERENCES Currency(CurrencyCode),
+	CONSTRAINT FK_Loan_LoanStatus FOREIGN KEY (LoanStatusId) REFERENCES LoanStatus(LoanStatusId),
+	CONSTRAINT FK_Loan_Customer FOREIGN KEY (CustomerId) REFERENCES Customer(CustomerId),
+	CONSTRAINT FK_Loan_InterestRateType FOREIGN KEY (InterestRateTypeId) REFERENCES InterestRateType(InterestRateTypeId),
+	CONSTRAINT CK_Loan_Amount CHECK (Amount > 0),
+	CONSTRAINT CK_Loan_CurrentMonthlyPayment CHECK (CurrentMonthlyPayment > 0),
+    CONSTRAINT CK_Loan_Principal CHECK (Principal > 0),
+	CONSTRAINT CK_Loan_AnnualInterestRate CHECK ( AnnualInterestRate >= 0 AND AnnualInterestRate <= 100),
+	CONSTRAINT CK_Loan_AccruedInterest CHECK (AccruedInterest >= 0),
+	CONSTRAINT CK_Loan_Dates CHECK ( ActiveTo IS NULL OR ActiveTo >= ActiveFrom),
+	CONSTRAINT CK_Loan_LoanTermMonth CHECK (LoanTermMonth > 0),
+	CONSTRAINT CK_Loan_OutstandingPrincipal CHECK (OutstandingPrincipal >= 0 AND OutstandingPrincipal <= Principal),
+	CONSTRAINT CK_Loan_PrincipalAmount CHECK (Amount >= Principal),
+	CONSTRAINT CK_Loan_InstallmentDate CHECK( ActiveTo IS NULL OR NextInstallmentDate <= ActiveTo),
+	CONSTRAINT CK_Loan_NextInstallmentDate CHECK ( NextInstallmentDate >= ActiveFrom)
+);
+
+CREATE TABLE LoanStatusHistory
+(
+    LoanStatusHistoryId BIGINT IDENTITY(1,1) NOT NULL,
+    LoanId BIGINT NOT NULL,
+    OldStatusId BIGINT NULL,
+    NewStatusId BIGINT NOT NULL,
+    ChangedAt DATETIMEOFFSET DEFAULT SYSDATETIMEOFFSET(),
+
+	CONSTRAINT PK_LoanStatusHistory PRIMARY KEY (LoanStatusHistoryId),
+	CONSTRAINT FK_LoanStatusHistory_Loan FOREIGN KEY (LoanId) REFERENCES Loan(LoanId),
+	CONSTRAINT FK_LoanStatusHistory_OldStatus FOREIGN KEY (OldStatusId) REFERENCES LoanStatus(LoanStatusId),
+	CONSTRAINT FK_LoanStatusHistory_NewStatus FOREIGN KEY (NewStatusId) REFERENCES LoanStatus(LoanStatusId)
+);
+
+CREATE TABLE LoanInterestAccrual /* daily interest accrual */
+(
+    LoanInterestAccrualId BIGINT IDENTITY(1,1),
+    LoanId BIGINT NOT NULL,
+    AccrualDate DATE NOT NULL,
+    PrincipalBalance DECIMAL(18,2) NOT NULL,
+    InterestRate DECIMAL(5,2) NOT NULL,
+    InterestAmount DECIMAL(18,2) NOT NULL,
+	CreatedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_LoanInterestAccrual_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+
+    CONSTRAINT PK_LoanInterestAccrual PRIMARY KEY (LoanInterestAccrualId),
+    CONSTRAINT FK_LoanInterestAccrual_Loan FOREIGN KEY (LoanId) REFERENCES Loan(LoanId),
+	CONSTRAINT UQ_LoanInterestAccrual_Date UNIQUE (LoanId, AccrualDate),
+	CONSTRAINT CK_LoanInterestAccrual_PrincipalBalance CHECK (PrincipalBalance >=0),
+	CONSTRAINT CK_LoanInterestAccrual_InterestRate CHECK (InterestRate >=0 AND InterestRate <=100),
+	CONSTRAINT CK_LoanInterestAccrual_InterestAmount CHECK (InterestAmount >=0)
+);
+
+CREATE TABLE LoanInstallmentStatus
+(
+	LoanInstallmentStatusId BIGINT IDENTITY(1,1) NOT NULL,
+	Code VARCHAR(30) NOT NULL, 
+    Name NVARCHAR(100) NOT NULL,
+
+	CONSTRAINT PK_LoanInstallmentStatus PRIMARY KEY (LoanInstallmentStatusId),
+	CONSTRAINT UQ_LoanInstallmentStatus_Code UNIQUE (Code)
+);
+
+CREATE TABLE LoanSchedule
+(
+	LoanScheduleId BIGINT IDENTITY(1,1) NOT NULL,
+	InstallmentNumber INT NOT NULL,
+	LoanId BIGINT NOT NULL,
+	LoanInstallmentStatusId BIGINT NOT NULL,
+	DueDate DATE NOT NULL,
+    PrincipalAmount DECIMAL(18,2) NOT NULL,
+    InterestAmount DECIMAL(18,2) NOT NULL,
+    TotalAmount AS ( PrincipalAmount + InterestAmount ) PERSISTED,
+	PaidAmount DECIMAL(18,2) NOT NULL DEFAULT(0),
+    PaidDate DATE NULL,
+	RemainingAmount AS (PrincipalAmount + InterestAmount - PaidAmount) PERSISTED,
+	CreatedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_LoanSchedule_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+
+	CONSTRAINT PK_LoanSchedule PRIMARY KEY (LoanScheduleId),
+	CONSTRAINT FK_LoanSchedule_Loan FOREIGN KEY (LoanId) REFERENCES Loan(LoanId),
+	CONSTRAINT FK_LoanSchedule_LoanInstallmentStatus FOREIGN KEY (LoanInstallmentStatusId) REFERENCES LoanInstallmentStatus(LoanInstallmentStatusId),
+	CONSTRAINT CK_LoanSchedule_Amounts CHECK (PrincipalAmount >= 0 AND InterestAmount >= 0),
+	CONSTRAINT UQ_LoanSchedule_Installment UNIQUE (LoanId, InstallmentNumber),
+	CONSTRAINT CK_LoanSchedule_PaidAmount CHECK (PaidAmount >=0 AND PaidAmount <= TotalAmount)
+);
+
+
+CREATE TABLE LoanPaymentType
+(
+	LoanPaymentTypeId BIGINT IDENTITY(1,1) NOT NULL,
+	Code VARCHAR(30) NOT NULL, 
+    Name NVARCHAR(100) NOT NULL,
+
+	CONSTRAINT PK_LoanPaymentType PRIMARY KEY (LoanPaymentTypeId),
+	CONSTRAINT UQ_LoanPaymentType_Code UNIQUE (Code)
+);
+
+CREATE TABLE LoanPaymentStatus
+(
+	LoanPaymentStatusId BIGINT IDENTITY(1,1) NOT NULL,
+	Code VARCHAR(30) NOT NULL, 
+    Name NVARCHAR(100) NOT NULL,
+
+	CONSTRAINT PK_LoanPaymentStatus PRIMARY KEY (LoanPaymentStatusId),
+	CONSTRAINT UQ_LoanPaymentStatus_Code UNIQUE (Code)
+);
+
+CREATE TABLE LoanPayment
+(
+	LoanPaymentId BIGINT IDENTITY(1,1) NOT NULL,
+	LoanScheduleId BIGINT NULL,
+	LoanPaymentStatusId BIGINT NOT NULL,
+	PaymentDate DATE NOT NULL,
+	LoanPaymentTypeId BIGINT NOT NULL,
+	Amount DECIMAL(18,2) NOT NULL,
+	PaymentReference VARCHAR(50) UNIQUE,
+	CreatedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_LoanPayment_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+
+	CONSTRAINT PK_LoanPayment PRIMARY KEY (LoanPaymentId),
+	CONSTRAINT FK_LoanPayment_LoanSchedule FOREIGN KEY (LoanScheduleId) REFERENCES LoanSchedule(LoanScheduleId),
+	CONSTRAINT FK_LoanPayment_LoanPaymentType FOREIGN KEY (LoanPaymentTypeId) REFERENCES LoanPaymentType(LoanPaymentTypeId),
+	CONSTRAINT FK_LoanPayment_LoanPaymentStatus FOREIGN KEY (LoanPaymentStatusId) REFERENCES LoanPaymentStatus(LoanPaymentStatusId),
+	CONSTRAINT CK_LoanPayment_Amount CHECK (Amount > 0)
+);
+
