@@ -472,3 +472,100 @@ CREATE TABLE LoanPayment
 	CONSTRAINT CK_LoanPayment_Amount CHECK (Amount > 0)
 );
 
+CREATE TABLE Branch
+(
+	BranchId BIGINT IDENTITY(1,1) NOT NULL,
+	Name NVARCHAR(150) NOT NULL,
+	Code VARCHAR(50) NOT NULL CONSTRAINT UQ_Branch_Code UNIQUE(Code),
+	Street NVARCHAR(350) NOT NULL,
+	BuildingNumber VARCHAR(20) NOT NULL,
+	PostalCode VARCHAR(10) NOT NULL,
+	City NVARCHAR(150) NOT NULL,
+	CountryCode CHAR(2) NOT NULL,
+
+	CONSTRAINT PK_Branch PRIMARY KEY (BranchId)
+);
+
+CREATE TABLE Employee 
+(
+	EmployeeId UNIQUEIDENTIFIER NOT NULL DEFAULT NEWSEQUENTIALID(),
+	BranchId BIGINT NOT NULL,
+	FirstName NVARCHAR(100) NOT NULL,
+	LastName NVARCHAR(100) NOT NULL,
+	Email VARCHAR(255),
+	PhoneNumber VARCHAR(20),
+	BirthDate DATE NOT NULL,
+	CreatedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_Employee_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+
+	CONSTRAINT PK_Employee PRIMARY KEY (EmployeeId),
+	CONSTRAINT FK_Employee_Branch FOREIGN KEY (BranchId) REFERENCES Branch(BranchId)
+);
+
+CREATE TABLE StandingOrderExecutionStatus
+(
+	StandingOrderExecutionStatusId BIGINT IDENTITY(1,1) NOT NULL,
+	Code VARCHAR(30) NOT NULL, 
+    Name NVARCHAR(100) NOT NULL,
+
+	CONSTRAINT PK_StandingOrderExecutionStatus PRIMARY KEY (StandingOrderExecutionStatusId),
+	CONSTRAINT UQ_StandingOrderExecutionStatus_Code UNIQUE (Code)
+);
+
+CREATE TABLE StandingOrderFrequency
+(
+	StandingOrderFrequencyId BIGINT IDENTITY(1,1) NOT NULL,
+	Code VARCHAR(30) NOT NULL, 
+    Name NVARCHAR(100) NOT NULL,
+
+	CONSTRAINT PK_StandingOrderFrequency PRIMARY KEY (StandingOrderFrequencyId),
+	CONSTRAINT UQ_StandingOrderFrequency_Code UNIQUE (Code)
+);
+
+CREATE TABLE StandingOrder
+(
+	StandingOrderId BIGINT IDENTITY(1,1) NOT NULL,
+	StandingOrderFrequencyId BIGINT NOT NULL,
+	Amount DECIMAL(18,2) NOT NULL,
+	NextExecutionDate DATE NOT NULL,
+	LastExecutionDate DATE NULL,
+	FromAccountId BIGINT NOT NULL,
+	ToAccountNumber VARCHAR(26) NOT NULL,
+	RecipientName NVARCHAR(200) NOT NULL,
+	Title NVARCHAR(150) NOT NULL,
+	CurrencyCode CHAR(3) NOT NULL,
+	IsActive BIT NOT NULL DEFAULT(1),
+	StartDate DATE NOT NULL,
+	EndDate DATE NULL,
+	CreatedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_StandingOrder_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+	UpdatedAt DATETIMEOFFSET(0) NULL,
+
+	CONSTRAINT PK_StandingOrder PRIMARY KEY (StandingOrderId),
+	CONSTRAINT FK_StandingOrder_Currency FOREIGN KEY (CurrencyCode) REFERENCES Currency(CurrencyCode),
+	CONSTRAINT FK_StandingOrder_FromAccount FOREIGN KEY (FromAccountId) REFERENCES Account(AccountId),
+	CONSTRAINT FK_StandingOrder_StandingOrderFrequency FOREIGN KEY (StandingOrderFrequencyId) REFERENCES StandingOrderFrequency(StandingOrderFrequencyId),
+	CONSTRAINT CK_StandingOrder_Amount CHECK (Amount > 0),
+	CONSTRAINT CK_StandingOrder_Dates CHECK (EndDate IS NULL OR EndDate >= StartDate),
+	CONSTRAINT CK_StandingOrder_NextExecution CHECK (NextExecutionDate >= StartDate),
+	CONSTRAINT CK_StandingOrder_ToAccountNumber CHECK (LEN(ToAccountNumber) = 26 AND ToAccountNumber NOT LIKE '%[^0-9]%'),
+	CONSTRAINT CK_StandingOrder_NextExecution_EndDate CHECK (EndDate IS NULL OR NextExecutionDate <= EndDate),
+	CONSTRAINT CK_StandingOrder_LastExecutionDate CHECK (LastExecutionDate IS NULL OR LastExecutionDate >= StartDate),
+	CONSTRAINT CK_StandingOrder_ExecutionDate CHECK (LastExecutionDate IS NULL OR LastExecutionDate < NextExecutionDate)
+);
+
+CREATE TABLE StandingOrderExecution
+(
+    StandingOrderExecutionId BIGINT IDENTITY(1,1) NOT NULL,
+    StandingOrderId BIGINT NOT NULL,
+    TransactionId BIGINT NULL,
+    ExecutionDate DATE NOT NULL,
+    Amount DECIMAL(18,2) NOT NULL,
+    StandingOrderExecutionStatusId BIGINT NOT NULL,
+    FailureReason NVARCHAR(250) NULL,
+    CreatedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_StandingOrderExecution_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+
+    CONSTRAINT PK_StandingOrderExecution PRIMARY KEY (StandingOrderExecutionId),
+    CONSTRAINT FK_StandingOrderExecution_StandingOrder FOREIGN KEY (StandingOrderId) REFERENCES StandingOrder(StandingOrderId),
+    CONSTRAINT FK_StandingOrderExecution_Transaction FOREIGN KEY (TransactionId) REFERENCES AccountTransaction(TransactionId),
+    CONSTRAINT FK_StandingOrderExecution_Status FOREIGN KEY (StandingOrderExecutionStatusId) REFERENCES StandingOrderExecutionStatus(StandingOrderExecutionStatusId),
+	CONSTRAINT CK_StandingOrderExecution_Amount CHECK (Amount > 0)
+);
