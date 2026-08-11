@@ -1010,3 +1010,4 @@ INSERT INTO Employee (BranchId, FirstName, LastName, Email, PhoneNumber, BirthDa
 (20, 'Natalia', 'Witkowska', 'natalia.witkowska@banking.pl', '550123162', '1993-04-08'),
 (20, 'Tomasz', 'Jasiñski', 'tomasz.jasinski@banking.pl', '550123163', '1981-09-16');
 
+
