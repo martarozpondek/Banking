@@ -704,7 +704,7 @@ VALUES
 ('9222', 'Fines'),
 ('9399', 'Government Services');
 
-	
+
 INSERT INTO Merchant (Name, Street, BuildingNumber, PostalCode, City, CountryCode, MCCCode) VALUES
 ('Biedronka', 'Aleja Wojska Polskiego', '12', '42-200', 'Czestochowa', 'PL', '5411'),
 ('Lidl', 'Aleja Najswietszej Maryi Panny', '45', '42-200', 'Czestochowa', 'PL', '5411'),
@@ -1336,3 +1336,1939 @@ CROSS APPLY
 ) b
 
 ORDER BY CustomerId;
+
+INSERT INTO AccountOverdraft
+(
+    AccountId,
+    OverdraftLimit,
+    InterestRate,
+    UsedAmount,
+    ActiveFrom,
+    ActiveTo
+)
+SELECT TOP (100)
+    a.AccountId,
+    r.OverdraftLimit,
+    r.InterestRate,
+    CAST(
+        ROUND(r.OverdraftLimit * r.UsedPct, 2)
+        AS DECIMAL(18,2)
+    ) AS UsedAmount,
+    d.ActiveFrom,
+    d.ActiveTo
+
+FROM Account a
+
+/* sprawdzamy, czy konto nie ma ju¿ overdraftu
+left join AccountId Unique - only one overdraft to one account*/
+LEFT JOIN AccountOverdraft ao ON ao.AccountId = a.AccountId
+
+-- losujemy limit, oprocentowanie i procent wykorzystania
+CROSS APPLY
+(
+    SELECT
+        CAST(
+            (ABS(CHECKSUM(NEWID())) % 1900000 + 100000) / 100.0 
+			/*CHECKSUM(NEWID()) change random value to number, 
+			ABS without a minus sign - absolute value,
+			range from 100 000 to 1 999 999*/
+            AS DECIMAL(18,2) /*a maximum of 18 digits, including 2 after the decimal point */
+        ) AS OverdraftLimit,
+
+        CAST(
+            (ABS(CHECKSUM(NEWID())) % 1001 + 800) / 100.0 /*(800 – 1800)/100 -- 8.00 – 18.00 */
+            AS DECIMAL(5,2)
+        ) AS InterestRate,
+
+        CAST(
+            ABS(CHECKSUM(NEWID())) % 81 /*Maximum - 80% */
+            AS DECIMAL(5,2)
+        ) / 100.0 AS UsedPct
+) r
+
+-- losujemy datê rozpoczêcia i ewentualnego zakoñczenia
+CROSS APPLY
+(
+    SELECT
+        DATEADD(
+            DAY,
+            -(ABS(CHECKSUM(NEWID())) % 1500), /* date from the last of 1500 days */
+            CAST(GETDATE() AS DATE) /*data only without time */
+        ) AS ActiveFrom
+) startDate
+
+CROSS APPLY
+(
+    SELECT
+        startDate.ActiveFrom AS ActiveFrom,
+
+        CASE
+            -- oko³o 15% overdraftów zakoñczonych
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 15
+            THEN DATEADD(
+                DAY,
+                ABS(CHECKSUM(NEWID()))
+                % (
+                    DATEDIFF(
+                        DAY,
+                        startDate.ActiveFrom,
+                        CAST(GETDATE() AS DATE)
+                    ) + 1
+                ),
+                startDate.ActiveFrom
+            )
+            ELSE NULL
+        END AS ActiveTo
+) d
+
+WHERE ao.AccountId IS NULL
+
+ORDER BY NEWID();
+
+INSERT INTO dbo.AccountTransaction
+(
+    TransactionReference,
+    TransactionTypeId,
+    TransactionStatusId,
+    TransactionDirection,
+    MerchantId,
+    AccountId,
+    Amount,
+    TransactionDate,
+    TransactionCurrencyCode,
+    Title,
+    BalanceAfterTransaction
+)
+SELECT TOP (10000)
+
+    -- numer transakcji
+    'TRX' + REPLACE(CONVERT(VARCHAR(36), NEWID()), '-', '') AS TransactionReference,
+
+    -- typ transakcji
+    t.TransactionTypeId,
+
+    -- status
+    s.TransactionStatusId,
+
+    -- kierunek
+    d.TransactionDirection,
+
+    -- merchant
+    CASE
+        WHEN t.TransactionTypeId IN (1, 6, 11)
+            THEN m.MerchantId
+        ELSE NULL
+    END AS MerchantId,
+
+    -- konto
+    a.AccountId,
+
+    -- kwota
+    x.Amount,
+
+    -- data
+    DATEADD(
+        DAY,
+        -(ABS(CHECKSUM(NEWID())) % 730),
+        SYSDATETIMEOFFSET()
+    ) AS TransactionDate,
+
+    -- waluta konta
+    a.CurrencyCode AS TransactionCurrencyCode,
+
+    -- tytu³
+    COALESCE(
+        CASE
+            WHEN t.TransactionTypeId IN (1, 6, 11)
+                THEN m.Name
+        END,
+        tt.Name,
+        'Transaction'
+    ) + ' - ' +
+    CONVERT(
+        VARCHAR(19),
+        DATEADD(
+            DAY,
+            -(ABS(CHECKSUM(NEWID())) % 730),
+            SYSDATETIMEOFFSET()
+        ),
+        120
+    ) AS Title,
+
+    -- saldo po transakcji
+    CASE
+        WHEN d.TransactionDirection = 'D'
+            THEN CAST(a.CurrentBalance - x.Amount AS DECIMAL(18,2))
+        ELSE
+            CAST(a.CurrentBalance + x.Amount AS DECIMAL(18,2))
+    END AS BalanceAfterTransaction
+
+FROM dbo.Account a
+
+CROSS APPLY
+(
+    SELECT
+        ABS(CHECKSUM(NEWID())) % 100 AS RandomType
+) rt
+
+CROSS APPLY
+(
+    SELECT
+        CASE
+            WHEN rt.RandomType < 40 THEN 1
+            WHEN rt.RandomType < 55 THEN 2
+            WHEN rt.RandomType < 63 THEN 3
+            WHEN rt.RandomType < 66 THEN 4
+            WHEN rt.RandomType < 71 THEN 5
+            WHEN rt.RandomType < 78 THEN 6
+            WHEN rt.RandomType < 82 THEN 7
+            WHEN rt.RandomType < 87 THEN 8
+            WHEN rt.RandomType < 90 THEN 9
+            WHEN rt.RandomType < 95 THEN 10
+            ELSE 11
+        END AS TransactionTypeId
+) t
+
+CROSS APPLY
+(
+    SELECT
+        CASE
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 85 THEN 3
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 92 THEN 1
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 96 THEN 2
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 98 THEN 4
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 99 THEN 5
+            ELSE 6
+        END AS TransactionStatusId
+) s
+
+CROSS APPLY
+(
+    SELECT
+        CASE
+            WHEN t.TransactionTypeId IN (1, 3, 6, 7, 10, 11)
+                THEN 'D'
+
+            WHEN t.TransactionTypeId IN (4, 5, 8, 9)
+                THEN 'C'
+
+            WHEN t.TransactionTypeId = 2
+                THEN
+                    CASE
+                        WHEN ABS(CHECKSUM(NEWID())) % 2 = 0
+                            THEN 'C'
+                        ELSE 'D'
+                    END
+        END AS TransactionDirection
+) d
+
+CROSS APPLY
+(
+    SELECT
+        CASE
+
+            WHEN t.TransactionTypeId = 1
+                THEN CAST(
+                    10 + ABS(CHECKSUM(NEWID())) % 1491
+                    AS DECIMAL(18,2)
+                )
+
+            WHEN t.TransactionTypeId = 2
+                THEN CAST(
+                    100 + ABS(CHECKSUM(NEWID())) % 9901
+                    AS DECIMAL(18,2)
+                )
+
+            WHEN t.TransactionTypeId = 3
+                THEN CAST(
+                    50 + ABS(CHECKSUM(NEWID())) % 1951
+                    AS DECIMAL(18,2)
+                )
+
+            WHEN t.TransactionTypeId = 4
+                THEN CAST(
+                    500 + ABS(CHECKSUM(NEWID())) % 9501
+                    AS DECIMAL(18,2)
+                )
+
+            WHEN t.TransactionTypeId = 5
+                THEN CAST(
+                    4000 + ABS(CHECKSUM(NEWID())) % 9001
+                    AS DECIMAL(18,2)
+                )
+
+            WHEN t.TransactionTypeId = 6
+                THEN CAST(
+                    30 + ABS(CHECKSUM(NEWID())) % 971
+                    AS DECIMAL(18,2)
+                )
+
+            WHEN t.TransactionTypeId = 7
+                THEN CAST(
+                    5 + ABS(CHECKSUM(NEWID())) % 96
+                    AS DECIMAL(18,2)
+                )
+
+            WHEN t.TransactionTypeId = 8
+                THEN CAST(
+                    20 + ABS(CHECKSUM(NEWID())) % 1481
+                    AS DECIMAL(18,2)
+                )
+
+            WHEN t.TransactionTypeId = 9
+                THEN CAST(
+                    10 + ABS(CHECKSUM(NEWID())) % 491
+                    AS DECIMAL(18,2)
+                )
+
+            WHEN t.TransactionTypeId = 10
+                THEN CAST(
+                    500 + ABS(CHECKSUM(NEWID())) % 3001
+                    AS DECIMAL(18,2)
+                )
+
+            WHEN t.TransactionTypeId = 11
+                THEN CAST(
+                    100 + ABS(CHECKSUM(NEWID())) % 1901
+                    AS DECIMAL(18,2)
+                )
+
+        END AS Amount
+) x
+
+OUTER APPLY
+(
+    SELECT TOP (1)
+        MerchantId,
+        Name
+    FROM dbo.Merchant
+    ORDER BY NEWID()
+) m
+
+LEFT JOIN dbo.TransactionType tt
+    ON tt.TransactionTypeId = t.TransactionTypeId
+
+ORDER BY NEWID();
+use Banking
+INSERT INTO dbo.Loan
+(
+    CurrencyCode,
+    LoanStatusId,
+    CustomerId,
+    InterestRateTypeId,
+    Amount,
+    CurrentMonthlyPayment,
+    LoanTermMonth,
+    Principal,
+    OutstandingPrincipal,
+    AnnualInterestRate,
+    AccruedInterest,
+    NextInstallmentDate,
+    ActiveFrom,
+    ActiveTo
+)
+SELECT TOP (100)
+
+    -- WALUTA
+    cur.CurrencyCode,
+
+    -- STATUS KREDYTU
+    ls.LoanStatusId,
+
+    -- KLIENT
+    cu.CustomerId,
+
+    -- TYP OPROCENTOWANIA
+    ir.InterestRateTypeId,
+
+    -- KWOTA KREDYTU
+    v.Amount,
+
+    -- RATA MIESIÊCZNA
+    CAST(
+        CASE
+            WHEN v.MonthlyRate = 0
+                THEN v.Principal / v.LoanTermMonth
+
+            ELSE
+                v.Principal *
+                (
+                    v.MonthlyRate *
+                    POWER(
+                        1 + v.MonthlyRate,
+                        v.LoanTermMonth
+                    )
+                )
+                /
+                (
+                    POWER(
+                        1 + v.MonthlyRate,
+                        v.LoanTermMonth
+                    ) - 1
+                )
+        END
+        AS DECIMAL(18,2)
+    ) AS CurrentMonthlyPayment,
+
+    -- OKRES KREDYTU
+    v.LoanTermMonth,
+
+    -- KAPITA£
+    v.Principal,
+
+    -- POZOSTA£Y KAPITA£
+    v.OutstandingPrincipal,
+
+    -- OPROCENTOWANIE ROCZNE
+    v.AnnualInterestRate,
+
+    -- NALICZONE ODSETKI
+    v.AccruedInterest,
+
+    -- NASTÊPNA RATA
+    DATEADD(
+        MONTH,
+        1,
+        v.ActiveFrom
+    ) AS NextInstallmentDate,
+
+    -- DATA ROZPOCZÊCIA
+    v.ActiveFrom,
+
+    -- DATA ZAKOÑCZENIA
+    v.ActiveTo
+
+FROM dbo.Customer cu
+
+-- losowa waluta dla ka¿dego kredytu
+CROSS APPLY
+(
+    SELECT TOP (1)
+        CurrencyCode
+    FROM dbo.Currency
+    ORDER BY NEWID()
+) cur
+
+-- losowy status dla ka¿dego kredytu
+CROSS APPLY
+(
+    SELECT TOP (1)
+        LoanStatusId
+    FROM dbo.LoanStatus
+    ORDER BY NEWID()
+) ls
+
+-- losowy typ oprocentowania dla ka¿dego kredytu
+CROSS APPLY
+(
+    SELECT TOP (1)
+        InterestRateTypeId
+    FROM dbo.InterestRateType
+    ORDER BY NEWID()
+) ir
+
+-- generowanie parametrów kredytu
+CROSS APPLY
+(
+    SELECT
+
+        -- kwota 10 000 - 300 000
+        CAST(
+            10000 +
+            ABS(CHECKSUM(NEWID())) % 290001
+            AS DECIMAL(18,2)
+        ) AS Amount,
+
+        -- okres 12 - 120 miesiêcy
+        12 +
+        ABS(CHECKSUM(NEWID())) % 109 AS LoanTermMonth,
+
+        -- oprocentowanie 5.00% - 15.00%
+        CAST(
+            5.00 +
+            (ABS(CHECKSUM(NEWID())) % 1001) / 100.0
+            AS DECIMAL(5,2)
+        ) AS AnnualInterestRate,
+
+        -- data rozpoczêcia z ostatnich 5 lat
+        DATEADD(
+            DAY,
+            -(ABS(CHECKSUM(NEWID())) % 1825),
+            CAST(GETDATE() AS DATE)
+        ) AS ActiveFrom
+
+) base
+
+-- wyliczamy kapita³ i oprocentowanie miesiêczne
+CROSS APPLY
+(
+    SELECT
+
+        base.Amount AS Amount,
+
+        base.LoanTermMonth AS LoanTermMonth,
+
+        base.AnnualInterestRate AS AnnualInterestRate,
+
+        CAST(
+            base.AnnualInterestRate / 100.0 / 12.0
+            AS DECIMAL(18,10)
+        ) AS MonthlyRate,
+
+        base.ActiveFrom AS ActiveFrom,
+
+        -- Principal = 90-100% kwoty kredytu
+        CAST(
+            base.Amount *
+            (
+                0.90 +
+                (ABS(CHECKSUM(NEWID())) % 11) / 100.0
+            )
+            AS DECIMAL(18,2)
+        ) AS Principal
+
+) calc
+
+-- wyliczamy pozosta³y kapita³ i odsetki
+CROSS APPLY
+(
+    SELECT
+
+        calc.Amount,
+
+        calc.LoanTermMonth,
+
+        calc.AnnualInterestRate,
+
+        calc.MonthlyRate,
+
+        calc.ActiveFrom,
+
+        calc.Principal,
+
+        -- pozosta³o 0-100% kapita³u
+        CAST(
+            calc.Principal *
+            (
+                ABS(CHECKSUM(NEWID())) % 101
+            ) / 100.0
+            AS DECIMAL(18,2)
+        ) AS OutstandingPrincipal,
+
+        -- naliczone odsetki 0-500 z³
+        CAST(
+            ABS(CHECKSUM(NEWID())) % 501
+            AS DECIMAL(18,2)
+        ) AS AccruedInterest,
+
+        -- 70% kredytów nadal aktywnych
+        CASE
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 70
+                THEN NULL
+
+            ELSE
+                DATEADD(
+                    MONTH,
+                    calc.LoanTermMonth,
+                    calc.ActiveFrom
+                )
+        END AS ActiveTo
+
+) v
+
+WHERE
+    -- gwarantujemy, ¿e kolejna rata mo¿e byæ po ActiveFrom
+    v.ActiveFrom <= DATEADD(
+        MONTH,
+        -1,
+        CAST(GETDATE() AS DATE)
+    )
+
+ORDER BY NEWID();
+use Banking
+select * from LoanPaymentStatus
+
+INSERT INTO dbo.LoanSchedule
+(
+    InstallmentNumber,
+    LoanId,
+    LoanInstallmentStatusId,
+    DueDate,
+    PrincipalAmount,
+    InterestAmount,
+    PaidAmount,
+    PaidDate
+)
+SELECT
+    n.InstallmentNumber,
+
+    l.LoanId,
+
+    -- STATUS RATY
+    CASE
+        -- przysz³a rata
+        WHEN d.DueDate > CAST(GETDATE() AS DATE)
+            THEN lsScheduled.LoanInstallmentStatusId
+
+        -- rata zap³acona
+        WHEN p.IsPaid = 1
+            THEN lsPaid.LoanInstallmentStatusId
+
+        -- rata czêœciowo zap³acona
+        WHEN p.IsPartiallyPaid = 1
+            THEN lsPartial.LoanInstallmentStatusId
+
+        -- rata przeterminowana
+        ELSE lsOverdue.LoanInstallmentStatusId
+    END AS LoanInstallmentStatusId,
+
+    d.DueDate,
+
+    -- KAPITA£
+    calc.PrincipalAmount,
+
+    -- ODSETKI
+    calc.InterestAmount,
+
+    -- ZAP£ACONA KWOTA
+    CASE
+        WHEN p.IsPaid = 1
+            THEN calc.TotalAmount
+
+        WHEN p.IsPartiallyPaid = 1
+            THEN CAST(
+                calc.TotalAmount *
+                (
+                    30 +
+                    ABS(CHECKSUM(NEWID())) % 51
+                ) / 100.0
+                AS DECIMAL(18,2)
+            )
+
+        ELSE 0
+    END AS PaidAmount,
+
+    -- DATA ZAP£ATY
+    CASE
+        WHEN p.IsPaid = 1
+            THEN DATEADD(
+                DAY,
+                -(ABS(CHECKSUM(NEWID())) % 10),
+                d.DueDate
+            )
+
+        WHEN p.IsPartiallyPaid = 1
+            THEN DATEADD(
+                DAY,
+                -(ABS(CHECKSUM(NEWID())) % 5),
+                d.DueDate
+            )
+
+        ELSE NULL
+    END AS PaidDate
+
+FROM dbo.Loan l
+
+-- generowanie numerów rat 1-120
+CROSS APPLY
+(
+    SELECT TOP (120)
+        ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS InstallmentNumber
+    FROM sys.all_columns a1
+    CROSS JOIN sys.all_columns a2
+) n
+
+-- tylko tyle rat, ile ma dany kredyt
+CROSS APPLY
+(
+    SELECT
+        DATEADD(
+            MONTH,
+            n.InstallmentNumber - 1,
+            l.ActiveFrom
+        ) AS DueDate
+) d
+
+-- wyliczenie kapita³u i odsetek
+CROSS APPLY
+(
+    SELECT
+
+        -- kapita³ raty
+        CAST(
+            CASE
+                -- ostatnia rata = wszystko co zosta³o
+                WHEN n.InstallmentNumber = l.LoanTermMonth
+                    THEN
+                        l.Principal
+                        -
+                        (
+                            CAST(
+                                l.Principal / l.LoanTermMonth
+                                AS DECIMAL(18,2)
+                            )
+                            * (l.LoanTermMonth - 1)
+                        )
+
+                ELSE
+                    CAST(
+                        l.Principal / l.LoanTermMonth
+                        AS DECIMAL(18,2)
+                    )
+            END
+            AS DECIMAL(18,2)
+        ) AS PrincipalAmount,
+
+        -- odsetki od pozosta³ego kapita³u
+        CAST(
+            (
+                l.Principal
+                -
+                (
+                    CAST(
+                        l.Principal / l.LoanTermMonth
+                        AS DECIMAL(18,2)
+                    )
+                    * (n.InstallmentNumber - 1)
+                )
+            )
+            *
+            (
+                l.AnnualInterestRate / 100.0 / 12.0
+            )
+            AS DECIMAL(18,2)
+        ) AS InterestAmount
+) raw
+
+-- ca³kowita rata
+CROSS APPLY
+(
+    SELECT
+        raw.PrincipalAmount,
+        raw.InterestAmount,
+        CAST(
+            raw.PrincipalAmount + raw.InterestAmount
+            AS DECIMAL(18,2)
+        ) AS TotalAmount
+) calc
+
+-- ustalamy czy rata zosta³a zap³acona
+CROSS APPLY
+(
+    SELECT
+        CASE
+            WHEN d.DueDate < CAST(GETDATE() AS DATE)
+                 AND ABS(CHECKSUM(NEWID())) % 100 < 85
+                THEN 1
+            ELSE 0
+        END AS IsPaid,
+
+        CASE
+            WHEN d.DueDate < CAST(GETDATE() AS DATE)
+                 AND ABS(CHECKSUM(NEWID())) % 100 BETWEEN 85 AND 94
+                THEN 1
+            ELSE 0
+        END AS IsPartiallyPaid
+) p
+
+-- STATUS: SCHEDULED
+CROSS APPLY
+(
+    SELECT TOP (1)
+        LoanInstallmentStatusId
+    FROM dbo.LoanInstallmentStatus
+    WHERE Code = 'SCHEDULED'
+) lsScheduled
+
+-- STATUS: PAID
+CROSS APPLY
+(
+    SELECT TOP (1)
+        LoanInstallmentStatusId
+    FROM dbo.LoanInstallmentStatus
+    WHERE Code = 'PAID'
+) lsPaid
+
+-- STATUS: PARTIALLY_PAID
+CROSS APPLY
+(
+    SELECT TOP (1)
+        LoanInstallmentStatusId
+    FROM dbo.LoanInstallmentStatus
+    WHERE Code = 'PARTIALLY_PAID'
+) lsPartial
+
+-- STATUS: OVERDUE
+CROSS APPLY
+(
+    SELECT TOP (1)
+        LoanInstallmentStatusId
+    FROM dbo.LoanInstallmentStatus
+    WHERE Code = 'OVERDUE'
+) lsOverdue
+
+WHERE
+    n.InstallmentNumber <= l.LoanTermMonth
+
+    -- zabezpieczenie przed ponownym wstawieniem tych samych rat
+    AND NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.LoanSchedule existing
+        WHERE existing.LoanId = l.LoanId
+          AND existing.InstallmentNumber = n.InstallmentNumber
+    );
+
+INSERT INTO dbo.LoanPayment
+(
+    LoanScheduleId,
+    LoanPaymentStatusId,
+    PaymentDate,
+    LoanPaymentTypeId,
+    Amount,
+    PaymentReference
+)
+SELECT
+    ls.LoanScheduleId,
+
+    -- STATUS P£ATNOŒCI
+    CASE
+        WHEN r.StatusRandom < 85 THEN 3   -- COMPLETED
+        WHEN r.StatusRandom < 90 THEN 1   -- PENDING
+        WHEN r.StatusRandom < 94 THEN 2   -- PROCESSING
+        WHEN r.StatusRandom < 97 THEN 4   -- FAILED
+        WHEN r.StatusRandom < 99 THEN 5   -- CANCELLED
+        ELSE 6                            -- REVERSED
+    END AS LoanPaymentStatusId,
+
+    -- DATA P£ATNOŒCI
+    CASE
+        WHEN ls.PaidDate IS NOT NULL
+            THEN ls.PaidDate
+        ELSE
+            DATEADD(
+                DAY,
+                -(ABS(CHECKSUM(NEWID())) % 5),
+                ls.DueDate
+            )
+    END AS PaymentDate,
+
+    -- TYP P£ATNOŒCI
+    CASE
+        WHEN r.TypeRandom < 65 THEN 6   -- AUTOMATIC_DEBIT
+        WHEN r.TypeRandom < 85 THEN 7   -- BANK_TRANSFER
+        WHEN r.TypeRandom < 95 THEN 9   -- CARD_PAYMENT
+        WHEN r.TypeRandom < 98 THEN 8   -- CASH_PAYMENT
+        ELSE 10                          -- REFUND
+    END AS LoanPaymentTypeId,
+
+    -- KWOTA
+    ls.PaidAmount AS Amount,
+
+    -- REFERENCJA
+    'LP-' +
+    REPLACE(
+        CONVERT(VARCHAR(36), NEWID()),
+        '-',
+        ''
+    ) AS PaymentReference
+
+FROM dbo.LoanSchedule ls
+
+CROSS APPLY
+(
+    SELECT
+        ABS(CHECKSUM(NEWID())) % 100 AS StatusRandom,
+        ABS(CHECKSUM(NEWID())) % 100 AS TypeRandom
+) r
+
+WHERE
+    ls.PaidAmount > 0
+
+    -- tylko raty, które mia³y termin
+    AND ls.DueDate <= CAST(GETDATE() AS DATE)
+
+    -- zabezpieczenie przed duplikowaniem p³atnoœci
+    AND NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.LoanPayment lp
+        WHERE lp.LoanScheduleId = ls.LoanScheduleId
+    );
+
+INSERT INTO dbo.LoanInterestAccrual
+(
+    LoanId,
+    AccrualDate,
+    PrincipalBalance,
+    InterestRate,
+    InterestAmount
+)
+SELECT
+    l.LoanId,
+
+    d.AccrualDate,
+
+    -- saldo kapita³u
+    CAST(
+        CASE
+            WHEN l.OutstandingPrincipal > 0
+                THEN l.OutstandingPrincipal
+            ELSE 0
+        END
+        AS DECIMAL(18,2)
+    ) AS PrincipalBalance,
+
+    l.AnnualInterestRate AS InterestRate,
+
+    -- dzienne odsetki
+    CAST(
+        CASE
+            WHEN l.OutstandingPrincipal > 0
+                THEN
+                    l.OutstandingPrincipal
+                    * l.AnnualInterestRate
+                    / 100.0
+                    / 365.0
+            ELSE 0
+        END
+        AS DECIMAL(18,2)
+    ) AS InterestAmount
+
+FROM dbo.Loan l
+
+CROSS APPLY
+(
+    SELECT TOP (30)
+        DATEADD(
+            DAY,
+            -(n - 1),
+            CAST(GETDATE() AS DATE)
+        ) AS AccrualDate
+    FROM
+    (
+        SELECT ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
+        FROM sys.all_columns a1
+        CROSS JOIN sys.all_columns a2
+    ) x
+) d
+
+WHERE
+    l.ActiveFrom <= d.AccrualDate
+
+    -- je¿eli kredyt ma ActiveTo,
+    -- nie generujemy odsetek po jego zakoñczeniu
+    AND
+    (
+        l.ActiveTo IS NULL
+        OR l.ActiveTo >= d.AccrualDate
+    )
+
+    -- zabezpieczenie przed duplikatami
+    AND NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.LoanInterestAccrual lia
+        WHERE lia.LoanId = l.LoanId
+          AND lia.AccrualDate = d.AccrualDate
+    );
+
+INSERT INTO dbo.LoanStatusHistory
+(
+    LoanId,
+    OldStatusId,
+    NewStatusId,
+    ChangedAt
+)
+
+-- =====================================================
+-- 1. PENDING ? ACTIVE
+-- =====================================================
+
+SELECT
+    l.LoanId,
+    1 AS OldStatusId,
+    2 AS NewStatusId,
+
+    DATEADD(
+        DAY,
+        ABS(CHECKSUM(NEWID())) % 30,
+        CAST(l.ActiveFrom AS DATETIMEOFFSET)
+    ) AS ChangedAt
+
+FROM dbo.Loan l
+
+WHERE l.LoanStatusId IN (2,3,4,5,6)
+
+AND NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.LoanStatusHistory h
+    WHERE h.LoanId = l.LoanId
+      AND h.NewStatusId = 2
+)
+
+
+UNION ALL
+
+
+-- =====================================================
+-- 2. ACTIVE ? PAID_OFF
+-- =====================================================
+
+SELECT
+    l.LoanId,
+    2 AS OldStatusId,
+    3 AS NewStatusId,
+
+    DATEADD(
+        DAY,
+        ABS(CHECKSUM(NEWID())) % 365,
+        CAST(l.ActiveFrom AS DATETIMEOFFSET)
+    ) AS ChangedAt
+
+FROM dbo.Loan l
+
+WHERE l.LoanStatusId = 3
+
+AND NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.LoanStatusHistory h
+    WHERE h.LoanId = l.LoanId
+      AND h.NewStatusId = 3
+)
+
+
+UNION ALL
+
+
+-- =====================================================
+-- 3. ACTIVE ? OVERDUE
+-- =====================================================
+
+SELECT
+    l.LoanId,
+    2 AS OldStatusId,
+    4 AS NewStatusId,
+
+    DATEADD(
+        DAY,
+        ABS(CHECKSUM(NEWID())) % 365,
+        CAST(l.ActiveFrom AS DATETIMEOFFSET)
+    ) AS ChangedAt
+
+FROM dbo.Loan l
+
+WHERE l.LoanStatusId IN (4,5)
+
+AND NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.LoanStatusHistory h
+    WHERE h.LoanId = l.LoanId
+      AND h.NewStatusId = 4
+)
+
+
+UNION ALL
+
+
+-- =====================================================
+-- 4. OVERDUE ? DEFAULTED
+-- =====================================================
+
+SELECT
+    l.LoanId,
+    4 AS OldStatusId,
+    5 AS NewStatusId,
+
+    DATEADD(
+        DAY,
+        365 + ABS(CHECKSUM(NEWID())) % 365,
+        CAST(l.ActiveFrom AS DATETIMEOFFSET)
+    ) AS ChangedAt
+
+FROM dbo.Loan l
+
+WHERE l.LoanStatusId = 5
+
+AND NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.LoanStatusHistory h
+    WHERE h.LoanId = l.LoanId
+      AND h.NewStatusId = 5
+)
+
+
+UNION ALL
+
+
+-- =====================================================
+-- 5. ACTIVE ? SUSPENDED
+-- =====================================================
+
+SELECT
+    l.LoanId,
+    2 AS OldStatusId,
+    6 AS NewStatusId,
+
+    DATEADD(
+        DAY,
+        ABS(CHECKSUM(NEWID())) % 365,
+        CAST(l.ActiveFrom AS DATETIMEOFFSET)
+    ) AS ChangedAt
+
+FROM dbo.Loan l
+
+WHERE l.LoanStatusId = 6
+
+AND NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.LoanStatusHistory h
+    WHERE h.LoanId = l.LoanId
+      AND h.NewStatusId = 6
+)
+
+
+UNION ALL
+
+
+-- =====================================================
+-- 6. PENDING ? CANCELLED
+-- =====================================================
+
+SELECT
+    l.LoanId,
+    1 AS OldStatusId,
+    7 AS NewStatusId,
+
+    DATEADD(
+        DAY,
+        ABS(CHECKSUM(NEWID())) % 30,
+        CAST(l.ActiveFrom AS DATETIMEOFFSET)
+    ) AS ChangedAt
+
+FROM dbo.Loan l
+
+WHERE l.LoanStatusId = 7
+
+AND NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.LoanStatusHistory h
+    WHERE h.LoanId = l.LoanId
+      AND h.NewStatusId = 7
+);
+
+SELECT
+    t.name AS TableName,
+    SUM(p.rows) AS RecordsCount
+FROM sys.tables AS t
+INNER JOIN sys.partitions AS p
+    ON t.object_id = p.object_id
+WHERE p.index_id IN (0, 1)
+GROUP BY t.name
+ORDER BY t.name;
+
+
+
+
+
+
+
+
+
+INSERT INTO dbo.Card
+(
+    CustomerId,
+    AccountId,
+    CardHolderName,
+    CardNumberHash,
+    LastFourDigits,
+    IssuedAt,
+    CardStatusId,
+    ActivatedAt,
+    ExpiresAt
+)
+SELECT
+    a.CustomerId,
+
+    a.AccountId,
+
+    CONCAT(
+        c.FirstName,
+        ' ',
+        c.LastName
+    ) AS CardHolderName,
+
+    HASHBYTES(
+        'SHA2_512',
+        '4' +
+        RIGHT(
+            '000000000000000' +
+            CAST(a.AccountId AS VARCHAR(15)),
+            15
+        )
+    ) AS CardNumberHash,
+
+    RIGHT(
+        RIGHT(
+            '000000000000000' +
+            CAST(a.AccountId AS VARCHAR(15)),
+            15
+        ),
+        4
+    ) AS LastFourDigits,
+
+    d.IssuedAt,
+
+    s.CardStatusId,
+
+    CASE
+        WHEN s.Code IN ('ACTIVE', 'BLOCKED')
+            THEN DATEADD(
+                DAY,
+                ABS(CHECKSUM(NEWID())) % 30,
+                CAST(d.IssuedAt AS DATETIME)
+            )
+        ELSE NULL
+    END AS ActivatedAt,
+
+    DATEADD(
+        YEAR,
+        4,
+        d.IssuedAt
+    ) AS ExpiresAt
+
+FROM dbo.Account a
+
+INNER JOIN dbo.Customer c
+    ON c.CustomerId = a.CustomerId
+
+CROSS APPLY
+(
+    SELECT
+        DATEADD(
+            DAY,
+            -(ABS(CHECKSUM(NEWID())) % 1000),
+            CAST(GETDATE() AS DATE)
+        ) AS IssuedAt
+) d
+
+CROSS APPLY
+(
+    SELECT TOP (1)
+        cs.CardStatusId,
+        cs.Code
+    FROM dbo.CardStatus cs
+    ORDER BY NEWID()
+) s
+
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.Card card
+    WHERE card.AccountId = a.AccountId
+);
+
+
+INSERT INTO dbo.CardSecurity
+(
+    CardId,
+    PinRetryCount,
+    BlockedUntil,
+    IsBlocked,
+    PinChangedAt
+)
+SELECT
+    c.CardId,
+
+    x.PinRetryCount,
+
+    CASE
+        WHEN x.IsBlocked = 1
+        THEN DATEADD(
+            HOUR,
+            1 + ABS(CHECKSUM(NEWID())) % 72,
+            SYSDATETIMEOFFSET()
+        )
+        ELSE NULL
+    END AS BlockedUntil,
+
+    x.IsBlocked,
+
+    CASE
+        WHEN ABS(CHECKSUM(NEWID())) % 100 < 90
+        THEN DATEADD(
+            DAY,
+            ABS(CHECKSUM(NEWID())) % 365,
+            CAST(c.IssuedAt AS DATETIMEOFFSET)
+        )
+        ELSE NULL
+    END AS PinChangedAt
+
+FROM dbo.Card c
+
+CROSS APPLY
+(
+    SELECT
+        CASE
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 80 THEN 0
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 95 THEN 1
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 99 THEN 2
+            ELSE 3
+        END AS PinRetryCount
+) p
+
+CROSS APPLY
+(
+    SELECT
+        p.PinRetryCount,
+        CASE
+            WHEN p.PinRetryCount = 3 THEN 1
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 2 THEN 1
+            ELSE 0
+        END AS IsBlocked
+) x
+
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.CardSecurity cs
+    WHERE cs.CardId = c.CardId
+);
+
+INSERT INTO dbo.CardTransactionAuthorization
+(
+    CardId,
+    MerchantId,
+    Amount,
+    CardTransactionAuthorizationStatusId,
+    AuthorizedAt,
+    CreatedAt,
+    UpdatedAt,
+    AuthorizationCode,
+    CurrencyCode,
+    TransactionId
+)
+SELECT TOP (500)
+    c.CardId,
+
+    m.MerchantId,
+
+    CAST(
+        (ABS(CHECKSUM(NEWID())) % 500000) / 100.0 + 5.00
+        AS DECIMAL(18,2)
+    ) AS Amount,
+
+    s.CardTransactionAuthorizationStatusId,
+
+    d.AuthorizedAt,
+
+    d.AuthorizedAt AS CreatedAt,
+
+    CASE
+        WHEN ABS(CHECKSUM(NEWID())) % 100 < 70
+        THEN DATEADD(
+            MINUTE,
+            ABS(CHECKSUM(NEWID())) % 1440,
+            d.AuthorizedAt
+        )
+        ELSE NULL
+    END AS UpdatedAt,
+
+    RIGHT(
+        '000000' +
+        CAST(
+            ABS(CHECKSUM(NEWID())) % 1000000
+            AS VARCHAR(6)
+        ),
+        6
+    ) AS AuthorizationCode,
+
+    cur.CurrencyCode,
+
+    NULL AS TransactionId
+
+FROM dbo.Card c
+
+CROSS APPLY
+(
+    SELECT TOP (1)
+        m1.MerchantId
+    FROM dbo.Merchant m1
+    ORDER BY NEWID()
+) m
+
+CROSS APPLY
+(
+    SELECT TOP (1)
+        s1.CardTransactionAuthorizationStatusId
+    FROM dbo.CardTransactionAuthorizationStatus s1
+    ORDER BY NEWID()
+) s
+
+CROSS APPLY
+(
+    SELECT TOP (1)
+        c1.CurrencyCode
+    FROM dbo.Currency c1
+    ORDER BY NEWID()
+) cur
+
+CROSS APPLY
+(
+    SELECT
+        DATEADD(
+            DAY,
+            -(ABS(CHECKSUM(NEWID())) % 365),
+            SYSDATETIMEOFFSET()
+        ) AS AuthorizedAt
+) d
+
+ORDER BY NEWID();
+
+SELECT *
+FROM dbo.CardTransactionAuthorizationStatus;
+
+
+INSERT INTO dbo.CardTransactionAuthorizationStatusHistory
+(
+    CardTransactionAuthorizationId,
+    OldStatusId,
+    NewStatusId,
+    ChangedAt
+)
+
+-- =====================================================
+-- 1. PENDING ? APPROVED
+-- =====================================================
+
+SELECT
+    a.CardTransactionAuthorizationId,
+    1 AS OldStatusId,
+    2 AS NewStatusId,
+    DATEADD(
+        MINUTE,
+        1 + ABS(CHECKSUM(NEWID())) % 10,
+        a.AuthorizedAt
+    ) AS ChangedAt
+FROM dbo.CardTransactionAuthorization a
+WHERE a.CardTransactionAuthorizationStatusId = 2
+
+
+UNION ALL
+
+
+-- =====================================================
+-- 2. PENDING ? DECLINED
+-- =====================================================
+
+SELECT
+    a.CardTransactionAuthorizationId,
+    1 AS OldStatusId,
+    3 AS NewStatusId,
+    DATEADD(
+        MINUTE,
+        1 + ABS(CHECKSUM(NEWID())) % 10,
+        a.AuthorizedAt
+    ) AS ChangedAt
+FROM dbo.CardTransactionAuthorization a
+WHERE a.CardTransactionAuthorizationStatusId = 3
+
+
+UNION ALL
+
+
+-- =====================================================
+-- 3. PENDING ? REVERSED
+-- =====================================================
+
+SELECT
+    a.CardTransactionAuthorizationId,
+    1 AS OldStatusId,
+    2 AS NewStatusId,
+    DATEADD(
+        MINUTE,
+        1 + ABS(CHECKSUM(NEWID())) % 10,
+        a.AuthorizedAt
+    ) AS ChangedAt
+FROM dbo.CardTransactionAuthorization a
+WHERE a.CardTransactionAuthorizationStatusId = 4
+
+UNION ALL
+
+SELECT
+    a.CardTransactionAuthorizationId,
+    2 AS OldStatusId,
+    4 AS NewStatusId,
+    DATEADD(
+        MINUTE,
+        30 + ABS(CHECKSUM(NEWID())) % 1440,
+        a.AuthorizedAt
+    ) AS ChangedAt
+FROM dbo.CardTransactionAuthorization a
+WHERE a.CardTransactionAuthorizationStatusId = 4
+
+
+UNION ALL
+
+
+-- =====================================================
+-- 4. PENDING ? EXPIRED
+-- =====================================================
+
+SELECT
+    a.CardTransactionAuthorizationId,
+    1 AS OldStatusId,
+    5 AS NewStatusId,
+    DATEADD(
+        HOUR,
+        1 + ABS(CHECKSUM(NEWID())) % 48,
+        a.AuthorizedAt
+    ) AS ChangedAt
+FROM dbo.CardTransactionAuthorization a
+WHERE a.CardTransactionAuthorizationStatusId = 5
+
+
+UNION ALL
+
+
+-- =====================================================
+-- 5. PENDING ? CANCELLED
+-- =====================================================
+
+SELECT
+    a.CardTransactionAuthorizationId,
+    1 AS OldStatusId,
+    6 AS NewStatusId,
+    DATEADD(
+        MINUTE,
+        1 + ABS(CHECKSUM(NEWID())) % 60,
+        a.AuthorizedAt
+    ) AS ChangedAt
+FROM dbo.CardTransactionAuthorization a
+WHERE a.CardTransactionAuthorizationStatusId = 6;
+
+
+
+
+;WITH Dates AS
+(
+    SELECT
+        CAST(DATEADD(DAY, -364, GETDATE()) AS DATE) AS RateDate
+
+    UNION ALL
+
+    SELECT
+        DATEADD(DAY, 1, RateDate)
+    FROM Dates
+    WHERE RateDate < CAST(GETDATE() AS DATE)
+),
+Rates AS
+(
+    SELECT
+        c.CurrencyCode,
+        d.RateDate,
+
+        CASE c.CurrencyCode
+            WHEN 'EUR' THEN 4.25
+            WHEN 'USD' THEN 3.65
+            WHEN 'GBP' THEN 4.95
+            WHEN 'CHF' THEN 4.55
+            WHEN 'CZK' THEN 0.17
+            WHEN 'DKK' THEN 0.57
+            WHEN 'HUF' THEN 0.011
+            WHEN 'JPY' THEN 0.023
+            WHEN 'NOK' THEN 0.37
+            WHEN 'SEK' THEN 0.38
+            WHEN 'CAD' THEN 2.65
+            WHEN 'AUD' THEN 2.40
+        END AS BaseRate
+
+    FROM dbo.Currency c
+    CROSS JOIN Dates d
+    WHERE c.CurrencyCode <> 'PLN'
+)
+INSERT INTO dbo.ExchangeRate
+(
+    CurrencyCode,
+    ExchangeRateDate,
+    CurrencyConversionRate,
+    Multiplier
+)
+SELECT
+    CurrencyCode,
+
+    DATEADD(
+        SECOND,
+        0,
+        CAST(RateDate AS DATETIMEOFFSET)
+    ) AS ExchangeRateDate,
+
+    CAST(
+        BaseRate +
+        (
+            (ABS(CHECKSUM(
+                NEWID()
+            )) % 2001 - 1000) / 100000.0
+        )
+        AS DECIMAL(10,4)
+    ) AS CurrencyConversionRate,
+
+    1.0000 AS Multiplier
+
+FROM Rates r
+
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.ExchangeRate er
+    WHERE er.CurrencyCode = r.CurrencyCode
+      AND er.ExchangeRateDate =
+          CAST(r.RateDate AS DATETIMEOFFSET)
+)
+OPTION (MAXRECURSION 400);
+
+INSERT INTO dbo.LedgerEntry
+(
+    AccountId,
+    TransactionId,
+    Debit,
+    Credit,
+    BalanceAfterEntry,
+    PostingDate
+)
+SELECT
+    t.AccountId,
+    t.TransactionId,
+
+    -- Debit = pieni¹dze wychodz¹ce z konta
+    CASE
+        WHEN t.TransactionDirection = 'D'
+            THEN t.Amount
+        ELSE 0
+    END AS Debit,
+
+    -- Credit = pieni¹dze wp³ywaj¹ce na konto
+    CASE
+        WHEN t.TransactionDirection = 'C'
+            THEN t.Amount
+        ELSE 0
+    END AS Credit,
+
+    t.BalanceAfterTransaction AS BalanceAfterEntry,
+
+    t.TransactionDate AS PostingDate
+
+FROM dbo.AccountTransaction t
+
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.LedgerEntry l
+    WHERE l.TransactionId = t.TransactionId
+);
+
+INSERT INTO dbo.OverdraftUsage
+(
+    OverdraftId,
+    OverdraftUsageTypeId,
+    TransactionId,
+    AmountUsed
+)
+SELECT TOP (150)
+    ao.OverdraftId,
+
+    (
+        SELECT TOP (1)
+            OverdraftUsageTypeId
+        FROM dbo.OverdraftUsageType
+        ORDER BY NEWID()
+    ) AS OverdraftUsageTypeId,
+
+    at.TransactionId,
+
+    CAST(
+        ABS(at.BalanceAfterTransaction)
+        AS DECIMAL(18,2)
+    ) AS AmountUsed
+
+FROM dbo.AccountOverdraft ao
+
+INNER JOIN dbo.AccountTransaction at
+    ON at.AccountId = ao.AccountId
+
+WHERE
+    at.TransactionDirection = 'D'
+    AND at.BalanceAfterTransaction < 0
+
+    AND NOT EXISTS
+    (
+        SELECT 1
+        FROM dbo.OverdraftUsage ou
+        WHERE ou.TransactionId = at.TransactionId
+    )
+
+ORDER BY NEWID();
+
+INSERT INTO dbo.OverdraftInterest
+(
+    OverdraftId,
+    TransactionStatusId,
+    TransactionId,
+    InterestDate,
+    InterestPeriodFrom,
+    InterestPeriodTo,
+    Amount,
+    Rate
+)
+SELECT
+    ao.OverdraftId,
+
+    CASE
+        WHEN ABS(CHECKSUM(NEWID())) % 100 < 85 THEN 3
+        WHEN ABS(CHECKSUM(NEWID())) % 100 < 95 THEN 1
+        ELSE 2
+    END AS TransactionStatusId,
+
+    NULL AS TransactionId,
+
+    DATEADD(
+        DAY,
+        -(ABS(CHECKSUM(NEWID())) % 365),
+        SYSDATETIMEOFFSET()
+    ) AS InterestDate,
+
+    DATEADD(
+        DAY,
+        -30,
+        CAST(GETDATE() AS DATE)
+    ) AS InterestPeriodFrom,
+
+    CAST(GETDATE() AS DATE) AS InterestPeriodTo,
+
+    CAST(
+        ROUND(
+            ao.UsedAmount
+            * (ao.InterestRate / 100.0)
+            * (30.0 / 365.0),
+            2
+        )
+        AS DECIMAL(18,2)
+    ) AS Amount,
+
+    ao.InterestRate AS Rate
+
+FROM dbo.AccountOverdraft ao
+WHERE ao.UsedAmount > 0;
+
+INSERT INTO dbo.StandingOrder
+(
+    StandingOrderFrequencyId,
+    Amount,
+    NextExecutionDate,
+    LastExecutionDate,
+    FromAccountId,
+    ToAccountNumber,
+    RecipientName,
+    Title,
+    CurrencyCode,
+    IsActive,
+    StartDate,
+    EndDate
+)
+SELECT TOP (100)
+
+    -- losowa czêstotliwoœæ
+    (
+        SELECT TOP (1)
+            StandingOrderFrequencyId
+        FROM dbo.StandingOrderFrequency
+        ORDER BY NEWID()
+    ),
+
+    -- kwota 50 - 5000 PLN/EUR itd.
+    CAST(
+        50 + (ABS(CHECKSUM(NEWID())) % 495001) / 100.0
+        AS DECIMAL(18,2)
+    ),
+
+    -- nastêpna realizacja 1-60 dni od dzisiaj
+    DATEADD(
+        DAY,
+        1 + ABS(CHECKSUM(NEWID())) % 60,
+        CAST(GETDATE() AS DATE)
+    ),
+
+    NULL,
+
+    -- konto Ÿród³owe
+    a.AccountId,
+
+    -- 26-cyfrowy numer rachunku odbiorcy
+    RIGHT(
+        '00000000000000000000000000' +
+        CAST(
+            ABS(CHECKSUM(NEWID())) % 100000000
+            AS VARCHAR(26)
+        ),
+        26
+    ),
+
+    -- odbiorca
+    CASE ABS(CHECKSUM(NEWID())) % 10
+        WHEN 0 THEN 'Zak³ad Energetyczny'
+        WHEN 1 THEN 'Orange Polska'
+        WHEN 2 THEN 'T-Mobile Polska'
+        WHEN 3 THEN 'PGE'
+        WHEN 4 THEN 'Wspólnota Mieszkaniowa'
+        WHEN 5 THEN 'Play'
+        WHEN 6 THEN 'Polsat Box'
+        WHEN 7 THEN 'ZUS'
+        WHEN 8 THEN 'Urz¹d Skarbowy'
+        ELSE 'Przelew w³asny'
+    END,
+
+    -- tytu³
+    CASE ABS(CHECKSUM(NEWID())) % 8
+        WHEN 0 THEN 'Op³ata za energiê elektryczn¹'
+        WHEN 1 THEN 'Op³ata za telefon'
+        WHEN 2 THEN 'Op³ata za internet'
+        WHEN 3 THEN 'Czynsz'
+        WHEN 4 THEN 'Op³ata za mieszkanie'
+        WHEN 5 THEN 'Rachunek miesiêczny'
+        WHEN 6 THEN 'Sta³y przelew'
+        ELSE 'Op³ata cykliczna'
+    END,
+
+    -- waluta taka jak na koncie
+    a.CurrencyCode,
+
+    -- 85% aktywnych
+    CASE
+        WHEN ABS(CHECKSUM(NEWID())) % 100 < 85
+        THEN 1
+        ELSE 0
+    END,
+
+    -- StartDate
+    s.StartDate,
+
+    -- EndDate zawsze po NextExecutionDate
+    CASE
+        WHEN ABS(CHECKSUM(NEWID())) % 100 < 20
+        THEN DATEADD(
+            DAY,
+            180 + ABS(CHECKSUM(NEWID())) % 730,
+            DATEADD(
+                DAY,
+                1 + ABS(CHECKSUM(NEWID())) % 60,
+                CAST(GETDATE() AS DATE)
+            )
+        )
+        ELSE NULL
+    END
+
+FROM dbo.Account a
+
+CROSS APPLY
+(
+    SELECT
+        DATEADD(
+            DAY,
+            -(ABS(CHECKSUM(NEWID())) % 365),
+            CAST(GETDATE() AS DATE)
+        ) AS StartDate
+) s
+
+WHERE NOT EXISTS
+(
+    SELECT 1
+    FROM dbo.StandingOrder so
+    WHERE so.FromAccountId = a.AccountId
+)
+
+ORDER BY NEWID();
+
+
+INSERT INTO dbo.StandingOrderExecution
+(
+    StandingOrderId,
+    TransactionId,
+    ExecutionDate,
+    Amount,
+    StandingOrderExecutionStatusId,
+    FailureReason
+)
+SELECT TOP (250)
+
+    so.StandingOrderId,
+
+    -- tylko czêœæ wykonanych zleceñ bêdzie
+    -- powi¹zana z transakcj¹
+    CASE
+        WHEN s.StatusId = 3
+             AND ABS(CHECKSUM(NEWID())) % 100 < 80
+        THEN
+            (
+                SELECT TOP (1)
+                    at.TransactionId
+                FROM dbo.AccountTransaction at
+                WHERE at.AccountId = so.FromAccountId
+                  AND at.Amount = so.Amount
+                  AND at.TransactionDirection = 'D'
+                ORDER BY NEWID()
+            )
+        ELSE NULL
+    END AS TransactionId,
+
+    -- data wykonania
+    s.ExecutionDate,
+
+    -- kwota taka sama jak w zleceniu
+    so.Amount,
+
+    s.StatusId,
+
+    -- powód b³êdu tylko dla FAILED
+    CASE
+        WHEN s.StatusId = 4 THEN
+            CASE ABS(CHECKSUM(NEWID())) % 5
+                WHEN 0 THEN 'Insufficient funds'
+                WHEN 1 THEN 'Account blocked'
+                WHEN 2 THEN 'Transaction rejected by bank'
+                WHEN 3 THEN 'Technical error'
+                ELSE 'Execution failed'
+            END
+        WHEN s.StatusId = 5 THEN
+            'Standing order cancelled'
+        ELSE NULL
+    END AS FailureReason
+
+FROM dbo.StandingOrder so
+
+CROSS APPLY
+(
+    SELECT
+        CASE
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 70 THEN 3
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 82 THEN 1
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 90 THEN 2
+            WHEN ABS(CHECKSUM(NEWID())) % 100 < 96 THEN 4
+            ELSE 5
+        END AS StatusId,
+
+        DATEADD(
+            DAY,
+            ABS(CHECKSUM(NEWID())) % 365,
+            so.StartDate
+        ) AS ExecutionDate
+) s
+
+WHERE s.ExecutionDate <= CAST(GETDATE() AS DATE)
+
+ORDER BY NEWID();
