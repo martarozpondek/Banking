@@ -5,13 +5,106 @@ VisualStudioVersion = 18.8.12023.21
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{4F2E2C19-372F-40D8-9FA7-9D2138C6997A}") = "Banking", "Banking\Banking.ssmssqlproj", "{A31454E2-A19F-4C63-E8C7-980F4ADC3708}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tables", "Tables", "{784CBCBE-D534-4CA2-BED4-E5E5B0E4E958}"
+	ProjectSection(SolutionItems) = preProject
+		Account.sql = Account.sql
+		AccountOverdraft.sql = AccountOverdraft.sql
+		AccountTransaction.sql = AccountTransaction.sql
+		AccountType.sql = AccountType.sql
+		Branch.sql = Branch.sql
+		Card.sql = Card.sql
+		CardSecurity.sql = CardSecurity.sql
+		CardStatus.sql = CardStatus.sql
+		CardTransactionAuthorization.sql = CardTransactionAuthorization.sql
+		CardTransactionAuthorizationStatus.sql = CardTransactionAuthorizationStatus.sql
+		CardTransactionAuthorizationStatusHistory.sql = CardTransactionAuthorizationStatusHistory.sql
+		currency.sql = currency.sql
+		customer.sql = customer.sql
+		Employee.sql = Employee.sql
+		ExchangeRate.sql = ExchangeRate.sql
+		InterestRateType.sql = InterestRateType.sql
+		LedgerEntry.sql = LedgerEntry.sql
+		Loan.sql = Loan.sql
+		LoanInstallmentStatus.sql = LoanInstallmentStatus.sql
+		LoanInterestAccrual.sql = LoanInterestAccrual.sql
+		LoanPayment.sql = LoanPayment.sql
+		LoanPaymentStatus.sql = LoanPaymentStatus.sql
+		LoanPaymentType.sql = LoanPaymentType.sql
+		LoanSchedule.sql = LoanSchedule.sql
+		LoanStatus.sql = LoanStatus.sql
+		LoanStatusHistory.sql = LoanStatusHistory.sql
+		Merchant.sql = Merchant.sql
+		MerchantCategoryCode.sql = MerchantCategoryCode.sql
+		OverdraftInterest.sql = OverdraftInterest.sql
+		OverdraftUsage.sql = OverdraftUsage.sql
+		OverdraftUsageType.sql = OverdraftUsageType.sql
+		StandingOrder.sql = StandingOrder.sql
+		StandingOrderExecution.sql = StandingOrderExecution.sql
+		StandingOrderExecutionStatus.sql = StandingOrderExecutionStatus.sql
+		StandingOrderFrequency.sql = StandingOrderFrequency.sql
+		TransactionStatus.sql = TransactionStatus.sql
+		TransactionType.sql = TransactionType.sql
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{40F0136B-3E15-45DD-B753-8035DD448CA1}"
+	ProjectSection(SolutionItems) = preProject
+		AccountData.sql = AccountData.sql
+		AccountOverdraftData.sql = AccountOverdraftData.sql
+		AccountTransactionData.sql = AccountTransactionData.sql
+		AccountTypeData.sql = AccountTypeData.sql
+		BranchData.sql = BranchData.sql
+		CardData.sql = CardData.sql
+		CardSecurityData.sql = CardSecurityData.sql
+		CardStatusData.sql = CardStatusData.sql
+		CardTransactionAuthorizationData.sql = CardTransactionAuthorizationData.sql
+		CardTransactionAuthorizationStatusData.sql = CardTransactionAuthorizationStatusData.sql
+		CardTransactionAuthorizationStatusHistoryData.sql = CardTransactionAuthorizationStatusHistoryData.sql
+		CurrencyData.sql = CurrencyData.sql
+		CustomerData.sql = CustomerData.sql
+		EmployeeData.sql = EmployeeData.sql
+		ExchangeRateData.sql = ExchangeRateData.sql
+		InterestRateTypeData.sql = InterestRateTypeData.sql
+		LedgerEntryData.sql = LedgerEntryData.sql
+		LoanData.sql = LoanData.sql
+		LoanInstallmentStatusData.sql = LoanInstallmentStatusData.sql
+		LoanInterestAccrualData.sql = LoanInterestAccrualData.sql
+		LoanPaymentData.sql = LoanPaymentData.sql
+		LoanPaymentStatusData.sql = LoanPaymentStatusData.sql
+		LoanPaymentTypeData.sql = LoanPaymentTypeData.sql
+		LoanScheduleData.sql = LoanScheduleData.sql
+		LoanStatusData.sql = LoanStatusData.sql
+		LoanStatusHistoryData.sql = LoanStatusHistoryData.sql
+		MerchantCategoryCodeData.sql = MerchantCategoryCodeData.sql
+		MerchantData.sql = MerchantData.sql
+		OverdraftInterestData.sql = OverdraftInterestData.sql
+		OverdraftUsageData.sql = OverdraftUsageData.sql
+		OverdraftUsageTypeData.sql = OverdraftUsageTypeData.sql
+		StandingOrderData.sql = StandingOrderData.sql
+		StandingOrderExecutionData.sql = StandingOrderExecutionData.sql
+		StandingOrderExecutionStatusData.sql = StandingOrderExecutionStatusData.sql
+		StandingOrderFrequencyData.sql = StandingOrderFrequencyData.sql
+		TransactionStatusData.sql = TransactionStatusData.sql
+		TransactionTypeData.sql = TransactionTypeData.sql
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Database", "Database", "{F489F331-B47D-4895-83BD-5202EAFDD01A}"
+	ProjectSection(SolutionItems) = preProject
+		Database.sql = Database.sql
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deployment", "Deployment", "{938FA357-8CD7-409D-B940-63681A3B436B}"
+	ProjectSection(SolutionItems) = preProject
+		00_RebuildDatabase.sql = 00_RebuildDatabase.sql
+		01_CreateTables.sql = 01_CreateTables.sql
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Default|Default = Default|Default
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{A31454E2-A19F-4C63-E8C7-980F4ADC3708}.Default|Default.ActiveCfg = Default
-		{6FB2FE48-9C17-4AA2-B154-54ED53525DAF}.Default|Default.ActiveCfg = Default
+		{CA3860D9-9445-43AF-B00E-F218BFA91BC4}.Default|Default.ActiveCfg = Default
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

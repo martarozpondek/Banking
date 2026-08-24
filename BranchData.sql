@@ -1,0 +1,22 @@
+INSERT INTO Branch(Name, Code, Street, BuildingNumber, PostalCode, City, CountryCode) 
+VALUES
+('Oddział Częstochowa Centrum', 'CZWA001', 'Aleja Najświętszej Maryi Panny', '35', '42-200', 'Częstochowa', 'PL'),
+('Oddział Częstochowa Północ', 'CZWA002', 'Aleja Wyzwolenia', '5', '42-224', 'Częstochowa', 'PL'),
+('Oddział Katowice Centrum', 'KATO001', 'Warszawska', '10', '40-008', 'Katowice', 'PL'),
+('Oddział Katowice Południe', 'KATO002', 'Kościuszki', '45', '40-048', 'Katowice', 'PL'),
+('Oddział Warszawa Centrum', 'WAW001', 'Marszałkowska', '100', '00-017', 'Warszawa', 'PL'),
+('Oddział Warszawa Mokotów', 'WAW002', 'Puławska', '45', '02-515', 'Warszawa', 'PL'),
+('Oddział Warszawa Wola', 'WAW003', 'Towarowa', '25', '00-839', 'Warszawa', 'PL'),
+('Oddział Kraków Centrum', 'KRK001', 'Floriańska', '15', '31-019', 'Kraków', 'PL'),
+('Oddział Kraków Podgórze', 'KRK002', 'Wadowicka', '3', '30-347', 'Kraków', 'PL'),
+('Oddział Wrocław Centrum', 'WRO001', 'Świdnicka', '20', '50-068', 'Wrocław', 'PL'),
+('Oddział Wrocław Krzyki', 'WRO002', 'Powstańców Śląskich', '95', '53-332', 'Wrocław', 'PL'),
+('Oddział Gdańsk Centrum', 'GDA001', 'Długa', '12', '80-827', 'Gdańsk', 'PL'),
+('Oddział Gdańsk Wrzeszcz', 'GDA002', 'Grunwaldzka', '100', '80-244', 'Gdańsk', 'PL'),
+('Oddział Poznań Centrum', 'POZ001', 'Święty Marcin', '40', '61-807', 'Poznań', 'PL'),
+('Oddział Poznań Jeżyce', 'POZ002', 'Dąbrowskiego', '50', '60-842', 'Poznań', 'PL'),
+('Oddział Łódź Centrum', 'LOD001', 'Piotrkowska', '100', '90-425', 'Łódź', 'PL'),
+('Oddział Zielona Góra Centrum', 'ZGR001', 'Niepodległości', '25', '65-048', 'Zielona Góra', 'PL'),
+('Oddział Sosnowiec Centrum', 'SOS001', 'Warszawska', '45', '41-200', 'Sosnowiec', 'PL'),
+('Oddział Lublin Centrum', 'LUB001', 'Krakowskie Przedmieście', '20', '20-002', 'Lublin', 'PL'),
+('Oddział Zakopane Centrum', 'ZAK001', 'Krupówki', '30', '34-500', 'Zakopane', 'PL');

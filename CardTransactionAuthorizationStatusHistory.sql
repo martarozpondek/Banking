@@ -1,0 +1,13 @@
+CREATE TABLE CardTransactionAuthorizationStatusHistory
+(
+	CardTransactionAuthorizationStatusHistoryId INT IDENTITY(1,1) NOT NULL,
+	CardTransactionAuthorizationId BIGINT NOT NULL,
+	OldStatusId INT NULL,
+	NewStatusId INT NOT NULL,
+	ChangedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_CardTransactionAuthorizationStatusHistory_ChangedAt DEFAULT SYSDATETIMEOFFSET(),
+
+	CONSTRAINT PK_CardTransactionAuthorizationStatusHistory PRIMARY KEY (CardTransactionAuthorizationStatusHistoryId),
+	CONSTRAINT FK_CardTransactionAuthorizationStatusHistory_OldStatus FOREIGN KEY (OldStatusId) REFERENCES CardTransactionAuthorizationStatus(CardTransactionAuthorizationStatusId),
+	CONSTRAINT FK_CardTransactionAuthorizationStatusHistory_NewStatus FOREIGN KEY (NewStatusId) REFERENCES CardTransactionAuthorizationStatus(CardTransactionAuthorizationStatusId),
+	CONSTRAINT FK_CardTransactionAuthorizationStatusHistory_CardTransactionAuthorization FOREIGN KEY (CardTransactionAuthorizationId) REFERENCES CardTransactionAuthorization(CardTransactionAuthorizationId),
+);

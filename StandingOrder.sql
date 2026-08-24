@@ -1,0 +1,30 @@
+CREATE TABLE StandingOrder
+(
+	StandingOrderId BIGINT IDENTITY(1,1) NOT NULL,
+	StandingOrderFrequencyId BIGINT NOT NULL,
+	Amount DECIMAL(18,2) NOT NULL,
+	NextExecutionDate DATE NOT NULL,
+	LastExecutionDate DATE NULL,
+	FromAccountId BIGINT NOT NULL,
+	ToAccountNumber VARCHAR(26) NOT NULL,
+	RecipientName NVARCHAR(200) NOT NULL,
+	Title NVARCHAR(150) NOT NULL,
+	CurrencyCode CHAR(3) NOT NULL,
+	IsActive BIT NOT NULL DEFAULT(1),
+	StartDate DATE NOT NULL,
+	EndDate DATE NULL,
+	CreatedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_StandingOrder_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+	UpdatedAt DATETIMEOFFSET(0) NULL,
+
+	CONSTRAINT PK_StandingOrder PRIMARY KEY (StandingOrderId),
+	CONSTRAINT FK_StandingOrder_Currency FOREIGN KEY (CurrencyCode) REFERENCES Currency(CurrencyCode),
+	CONSTRAINT FK_StandingOrder_FromAccount FOREIGN KEY (FromAccountId) REFERENCES Account(AccountId),
+	CONSTRAINT FK_StandingOrder_StandingOrderFrequency FOREIGN KEY (StandingOrderFrequencyId) REFERENCES StandingOrderFrequency(StandingOrderFrequencyId),
+	CONSTRAINT CK_StandingOrder_Amount CHECK (Amount > 0),
+	CONSTRAINT CK_StandingOrder_Dates CHECK (EndDate IS NULL OR EndDate >= StartDate),
+	CONSTRAINT CK_StandingOrder_NextExecution CHECK (NextExecutionDate >= StartDate),
+	CONSTRAINT CK_StandingOrder_ToAccountNumber CHECK (LEN(ToAccountNumber) = 26 AND ToAccountNumber NOT LIKE '%[^0-9]%'),
+	CONSTRAINT CK_StandingOrder_NextExecution_EndDate CHECK (EndDate IS NULL OR NextExecutionDate <= EndDate),
+	CONSTRAINT CK_StandingOrder_LastExecutionDate CHECK (LastExecutionDate IS NULL OR LastExecutionDate >= StartDate),
+	CONSTRAINT CK_StandingOrder_ExecutionDate CHECK (LastExecutionDate IS NULL OR LastExecutionDate < NextExecutionDate)
+);

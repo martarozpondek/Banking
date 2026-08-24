@@ -1,0 +1,16 @@
+CREATE TABLE LedgerEntry
+(
+    LedgerEntryId BIGINT IDENTITY(1,1),
+	AccountId BIGINT NOT NULL,
+	TransactionId BIGINT NOT NULL,
+    Debit DECIMAL(18,2) NOT NULL DEFAULT(0),
+    Credit DECIMAL(18,2) NOT NULL DEFAULT(0),
+	BalanceAfterEntry DECIMAL(18,2) NOT NULL,
+	CreatedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_LedgerEntry_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
+	PostingDate DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_LedgerEntry_PostingDate DEFAULT SYSDATETIMEOFFSET(),
+
+	CONSTRAINT PK_LedgerEntry PRIMARY KEY(LedgerEntryId),
+	CONSTRAINT FK_LedgerEntry_Account FOREIGN KEY (AccountId) REFERENCES Account(AccountId),
+	CONSTRAINT FK_LedgerEntry_AccountTransaction FOREIGN KEY (TransactionId) REFERENCES AccountTransaction(TransactionId)
+
+);

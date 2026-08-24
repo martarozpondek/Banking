@@ -1,0 +1,14 @@
+CREATE TABLE Merchant
+(
+	MerchantId INT IDENTITY(1,1) NOT NULL,
+	Name NVARCHAR(250) NOT NULL,
+	Street NVARCHAR(350) NOT NULL,
+	BuildingNumber VARCHAR(20) NOT NULL,
+	PostalCode VARCHAR(10) NOT NULL,
+	City NVARCHAR(150) NOT NULL,
+	CountryCode CHAR(2) NOT NULL,
+	MCCCode CHAR(4) NOT NULL,
+
+	CONSTRAINT PK_Merchant PRIMARY KEY (MerchantId),
+	CONSTRAINT FK_Merchant_MerchantCategoryCode FOREIGN KEY (MCCCode) REFERENCES MerchantCategoryCode(MCCCode)
+);

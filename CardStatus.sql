@@ -1,0 +1,9 @@
+CREATE TABLE CardStatus
+(
+	CardStatusId BIGINT IDENTITY(1,1) NOT NULL,
+	Code VARCHAR(30) NOT NULL, 
+    Name NVARCHAR(100) NOT NULL,
+
+	CONSTRAINT PK_CardStatus PRIMARY KEY (CardStatusId),
+	CONSTRAINT UQ_CardStatus_Code UNIQUE (Code),
+);
