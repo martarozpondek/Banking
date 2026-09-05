@@ -5,8 +5,8 @@ CREATE TABLE Account
 	AccountNumber VARCHAR(26) NOT NULL CONSTRAINT UQ_Account_AccountNumber UNIQUE (AccountNumber),
 	AccountTypeId INT NOT NULL,
 	CurrencyCode CHAR(3) NOT NULL,
-	CurrentBalance DECIMAL(18,2) NOT NULL CONSTRAINT DF_Account_CurrentBalance DEFAULT (0),
-	AvailableBalance DECIMAL(18,2) NOT NULL CONSTRAINT DF_Account_AvailableBalance DEFAULT (0),
+	CurrentBalance DECIMAL(18,2) NOT NULL CONSTRAINT DF_Account_CurrentBalance DEFAULT (0), /*Total account balance excluding the blocked amount.*/
+	AvailableBalance DECIMAL(18,2) NOT NULL CONSTRAINT DF_Account_AvailableBalance DEFAULT (0), /*The amount actually available for immediate use.*/
 	CreatedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_Account_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
 
 	CONSTRAINT PK_Account PRIMARY KEY (AccountId),
