@@ -7,7 +7,7 @@ INSERT INTO Account
     CurrentBalance,
     AvailableBalance
 )
-SELECT TOP (700)
+SELECT TOP (80)
 
     CustomerId,
 
@@ -51,3 +51,4 @@ CROSS APPLY
 ) b
 
 ORDER BY CustomerId;
+

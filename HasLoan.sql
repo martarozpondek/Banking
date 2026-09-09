@@ -10,12 +10,12 @@ BEGIN
 	DECLARE @Result AS BIT 
 	SELECT @Result =
 		CASE
-			WHEN  count(CustomerId) IS NOT NULL THEN 1
+			WHEN EXISTS (SELECT CustomerId FROM Loan WHERE CustomerId = @CustomerId) THEN 1
 			ELSE 0
 		END
-	
-	FROM Loan
-	WHERE CustomerId = @CustomerId;
 	RETURN @Result;
 	
 END;
+
+SELECT FirstName, LastName, dbo.HasLoan(CustomerId) AS HasLoan
+FROM dbo.Customer;

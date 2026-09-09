@@ -1,6 +1,6 @@
 /* Czy konto jest na debecie */
 use Banking;
-CREATE FUNCTION IsAccountOverdrawn(
+CREATE FUNCTION IsAccountOverdraft(
 	@AccountId BIGINT
 )
 RETURNS BIT
@@ -17,4 +17,4 @@ BEGIN
 	RETURN @Result
 END;
 
-SELECT dbo.IsAccountOverdrawn(520) AS IsAccountOverdrawn;
+SELECT dbo.IsAccountOverdraft(520) AS IsAccountOverdraft;

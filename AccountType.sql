@@ -7,3 +7,4 @@ CREATE TABLE AccountType
 
 	CONSTRAINT PK_AccountType PRIMARY KEY (AccountTypeId)
 );
+

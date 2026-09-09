@@ -1,0 +1,1 @@
+/*zwraca łączną wartość transakcji klienta w określonym okresie */

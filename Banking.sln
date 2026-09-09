@@ -100,9 +100,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deployment", "Deployment", 
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Function", "Function", "{C0F99C87-EB4A-4D79-AED0-19DB318D29A7}"
 	ProjectSection(SolutionItems) = preProject
+		GetAccountFinancialStatus.sql = GetAccountFinancialStatus.sql
+		GetCustomerAccountCount.sql = GetCustomerAccountCount.sql
+		GetCustomerAge.sql = GetCustomerAge.sql
+		GetCustomerCreditExposure.sql = GetCustomerCreditExposure.sql
+		GetCustomerRiskLevel.sql = GetCustomerRiskLevel.sql
+		GetCustomerTotalTransactionAmount.sql = GetCustomerTotalTransactionAmount.sql
+		GetOverdraftUsagePercentage.sql = GetOverdraftUsagePercentage.sql
 		HasLoan.sql = HasLoan.sql
+		HasLoanActive.sql = HasLoanActive.sql
 		hasSufficientFunds.sql = hasSufficientFunds.sql
-		IsAccountOverdrawn.sql = IsAccountOverdrawn.sql
+		IsAccountOverdraft.sql = IsAccountOverdraft.sql
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Queries", "Queries", "{42B6550A-9EBA-47FB-B3F6-083A8E3D97C1}"
@@ -116,7 +124,7 @@ Global
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{A31454E2-A19F-4C63-E8C7-980F4ADC3708}.Default|Default.ActiveCfg = Default
-		{2F881D41-839A-498E-BEF5-B8ECEECC8FFF}.Default|Default.ActiveCfg = Default
+		{97660C8B-BC5E-4BD6-8D38-F1D1F5B3DCAC}.Default|Default.ActiveCfg = Default
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
