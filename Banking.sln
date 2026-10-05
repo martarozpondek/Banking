@@ -94,8 +94,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Database", "Database", "{F4
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deployment", "Deployment", "{938FA357-8CD7-409D-B940-63681A3B436B}"
 	ProjectSection(SolutionItems) = preProject
-		00_RebuildDatabase.sql = 00_RebuildDatabase.sql
-		01_CreateTables.sql = 01_CreateTables.sql
+		00_DropDatabase.sql = 00_DropDatabase.sql
+		01_CreateDatabase.sql = 01_CreateDatabase.sql
+		02_CreateTables.sql = 02_CreateTables.sql
+		03_InsertReferenceData.sql = 03_InsertReferenceData.sql
+		99_RebuildDatabase.sql = 99_RebuildDatabase.sql
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Function", "Function", "{C0F99C87-EB4A-4D79-AED0-19DB318D29A7}"
@@ -124,7 +127,7 @@ Global
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{A31454E2-A19F-4C63-E8C7-980F4ADC3708}.Default|Default.ActiveCfg = Default
-		{97660C8B-BC5E-4BD6-8D38-F1D1F5B3DCAC}.Default|Default.ActiveCfg = Default
+		{85BF748C-253C-4EE6-A0DB-2BEFABE1DC0F}.Default|Default.ActiveCfg = Default
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
