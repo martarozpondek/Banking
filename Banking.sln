@@ -121,13 +121,20 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Queries", "Queries", "{42B6
 		queries.sql = queries.sql
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{E48F01D1-6977-4FFC-93F8-3C5A7C7F280D}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Procedures", "Procedures", "{D15CCB23-9737-4C0B-A833-E144557EDAAC}"
+	ProjectSection(SolutionItems) = preProject
+		BranchPerformanceReport.sql = BranchPerformanceReport.sql
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Default|Default = Default|Default
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{A31454E2-A19F-4C63-E8C7-980F4ADC3708}.Default|Default.ActiveCfg = Default
-		{85BF748C-253C-4EE6-A0DB-2BEFABE1DC0F}.Default|Default.ActiveCfg = Default
+		{2D559A4E-AAC9-4F2E-9DBA-E8048A6C0534}.Default|Default.ActiveCfg = Default
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
