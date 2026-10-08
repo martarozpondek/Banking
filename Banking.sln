@@ -20,8 +20,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tables", "Tables", "{784CBC
 		CardTransactionAuthorizationStatusHistory.sql = CardTransactionAuthorizationStatusHistory.sql
 		currency.sql = currency.sql
 		customer.sql = customer.sql
+		CustomerInteraction.sql = CustomerInteraction.sql
 		Employee.sql = Employee.sql
 		ExchangeRate.sql = ExchangeRate.sql
+		InteractionChannel.sql = InteractionChannel.sql
+		InteractionType.sql = InteractionType.sql
 		InterestRateType.sql = InterestRateType.sql
 		LedgerEntry.sql = LedgerEntry.sql
 		Loan.sql = Loan.sql
@@ -61,8 +64,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Scripts", "Scripts", "{40F0
 		CardTransactionAuthorizationStatusHistoryData.sql = CardTransactionAuthorizationStatusHistoryData.sql
 		CurrencyData.sql = CurrencyData.sql
 		CustomerData.sql = CustomerData.sql
+		CustomerInteractionData.sql = CustomerInteractionData.sql
 		EmployeeData.sql = EmployeeData.sql
 		ExchangeRateData.sql = ExchangeRateData.sql
+		InteractionChannelData.sql = InteractionChannelData.sql
+		InteractionTypeData.sql = InteractionTypeData.sql
 		InterestRateTypeData.sql = InterestRateTypeData.sql
 		LedgerEntryData.sql = LedgerEntryData.sql
 		LoanData.sql = LoanData.sql
@@ -134,7 +140,7 @@ Global
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{A31454E2-A19F-4C63-E8C7-980F4ADC3708}.Default|Default.ActiveCfg = Default
-		{2D559A4E-AAC9-4F2E-9DBA-E8048A6C0534}.Default|Default.ActiveCfg = Default
+		{A4BFF336-D900-4789-A32F-FC35C4BE4774}.Default|Default.ActiveCfg = Default
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
