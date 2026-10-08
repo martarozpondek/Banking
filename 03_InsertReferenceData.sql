@@ -49,35 +49,8 @@ GO
 -- Standing orders
 :r "C:\Users\marta\Documents\SQL Server Management Studio 21\Projects\Banking\StandingOrderData.sql"
 :r "C:\Users\marta\Documents\SQL Server Management Studio 21\Projects\Banking\StandingOrderExecutionData.sql"
-SELECT
-    'LoanInterestAccrual' AS TableName,
-    COUNT(*) AS LiczbaWierszy
-FROM dbo.LoanInterestAccrual
 
-UNION ALL
-
-SELECT
-    'LoanSchedule',
-    COUNT(*)
-FROM dbo.LoanSchedule
-
-UNION ALL
-
-SELECT
-    'LoanPayment',
-    COUNT(*)
-FROM dbo.LoanPayment
-
-UNION ALL
-
-SELECT
-    'StandingOrder',
-    COUNT(*)
-FROM dbo.StandingOrder
-
-UNION ALL
-
-SELECT
-    'StandingOrderExecution',
-    COUNT(*)
-FROM dbo.StandingOrderExecution;
+--Customer interactions
+:r "C:\Users\marta\Documents\SQL Server Management Studio 21\Projects\Banking\InteractionChannelData.sql"
+:r "C:\Users\marta\Documents\SQL Server Management Studio 21\Projects\Banking\InteractionTypeData.sql"
+:r "C:\Users\marta\Documents\SQL Server Management Studio 21\Projects\Banking\CustomerInteractionData.sql"

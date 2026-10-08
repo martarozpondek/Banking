@@ -19,4 +19,4 @@ CREATE TABLE CustomerInteraction
 
 use Banking;
 
-select * from InteractionType
+select * from InteractionChannel

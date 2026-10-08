@@ -48,3 +48,8 @@ GO
 -- Standing orders
 :r "C:\Users\marta\Documents\SQL Server Management Studio 21\Projects\Banking\StandingOrder.sql"
 :r "C:\Users\marta\Documents\SQL Server Management Studio 21\Projects\Banking\StandingOrderExecution.sql"
+
+--Customer interactions
+:r "C:\Users\marta\Documents\SQL Server Management Studio 21\Projects\Banking\InteractionChannel.sql"
+:r "C:\Users\marta\Documents\SQL Server Management Studio 21\Projects\Banking\InteractionType.sql"
+:r "C:\Users\marta\Documents\SQL Server Management Studio 21\Projects\Banking\CustomerInteraction.sql"
