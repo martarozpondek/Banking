@@ -134,13 +134,18 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Procedures", "Procedures", 
 		BranchPerformanceReport.sql = BranchPerformanceReport.sql
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TestData", "TestData", "{7977E760-CABF-48D2-8205-B17026914D3D}"
+	ProjectSection(SolutionItems) = preProject
+		UpdateLoanStatuses.sql = UpdateLoanStatuses.sql
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Default|Default = Default|Default
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{A31454E2-A19F-4C63-E8C7-980F4ADC3708}.Default|Default.ActiveCfg = Default
-		{A4BFF336-D900-4789-A32F-FC35C4BE4774}.Default|Default.ActiveCfg = Default
+		{AED7CE00-CCD6-450A-BC71-64A65F163D3C}.Default|Default.ActiveCfg = Default
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

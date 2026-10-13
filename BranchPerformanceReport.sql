@@ -23,7 +23,7 @@ ile średnio środków przypada na klienta oddziału?*/
             c.BranchId
     )
     SELECT COUNT(CustomerId) AS 'CustomerCount', AVG(CustomerBalance) AS 'AverageBalancePerCustomer'
-	    FROM CustomerBalances
+	    FROM CustomerBalances;
 
 
 
@@ -70,24 +70,28 @@ ilu klientów obsługuje średnio jeden pracownik?*/
 
     WITH CustomersPerEmployee AS
     (
-        SELECT ci.EmployeeId, COUNT(DISTINCT ci.CustomerId) AS 'CustomersPerEmployee'
-        FROM CustomerInteraction AS ci JOIN Employee AS e
+        SELECT e.EmployeeId,
+        COUNT(DISTINCT ci.CustomerId) AS CustomersPerEmployee
+        FROM dbo.Employee AS e
+        LEFT JOIN dbo.CustomerInteraction AS ci
         ON ci.EmployeeId = e.EmployeeId
-        WHERE e.BranchId = @BranchId GROUP BY ci.EmployeeId
+        AND ci.BranchId = @BranchId
+        WHERE e.BranchId = @BranchId
+        GROUP BY e.EmployeeId
     )
     SELECT AVG(CAST(CustomersPerEmployee AS DECIMAL(10,2))) AS 'AverageCustomersPerEmployee' 
-    FROM CustomersPerEmployee
+    FROM CustomersPerEmployee;
 
 
 /*EmployeeCount
 Ilu pracowników jest przypisanych do tego oddziału?*/
 
-SELECT COUNT(*) AS EmployeeCount FROM Employee WHERE BranchId = @BranchId
+SELECT COUNT(*) AS EmployeeCount FROM Employee WHERE BranchId = @BranchId;
 
 /*TotalCustomerInteractions
 Ile wszystkich interakcji z klientami obsłużył oddział? */
 
-SELECT COUNT(*) AS TotalCustomerInteractions FROM CustomerInteraction WHERE BranchId = @BranchId 
+SELECT COUNT(*) AS TotalCustomerInteractions FROM CustomerInteraction WHERE BranchId = @BranchId;
 
 /* AverageInteractionsPerEmployee
 Średnia liczba interakcji na pracownika */
@@ -132,7 +136,7 @@ SELECT COUNT(*) AS TotalCustomerInteractions FROM CustomerInteraction WHERE Bran
         Loan AS l ON c.CustomerId = l.CustomerId
         JOIN 
         LoanStatus AS ls ON l.LoanStatusId = ls.LoanStatusId
-        WHERE c.BranchId = @BranchId
+        WHERE c.BranchId = @BranchId;
     
 
     /* LoanPenetration – jaki % klientów oddziału ma kredyt
@@ -140,12 +144,62 @@ ActiveLoanRate – jaki % wszystkich kredytów jest aktywnych
 OverdueLoanRate – jaki % wszystkich kredytów jest przeterminowanych 
 Jaki procent klientów oddziału posiada kredyt?*/
 
+SELECT COUNT(DISTINCT l.CustomerId) AS 'CustmerWithLoan',
+COUNT(l.LoanId) AS 'TotalNumberOfLoan',
+CAST(
+    COUNT(DISTINCT l.CustomerId) * 100.0 /
+    NULLIF(
+    (SELECT COUNT(*) FROM Customer WHERE BranchId = @BranchId), 0
+    ) AS DECIMAL(5,2) 
+    ) AS 'LoanPenetration',
+CAST(    
+    SUM( 
+        CASE 
+            WHEN ls.Name = 'ACTIVE' THEN 1
+            ELSE 0
+        END
+    ) * 100.0 /
+    NULLIF(COUNT(l.LoanId),0) AS DECIMAL(5,2)
+    )AS 'ActiveLoans',
+CAST(
+    SUM(
+        CASE
+            WHEN ls.Name = 'OVERDUE' THEN 1
+            ELSE 0
+        END
+     ) * 100.0 /
+    NULLIF(COUNT(l.LoanId),0) AS DECIMAL(5,2)
+    )AS 'OverdueLoans'
+FROM Loan AS l 
+JOIN LoanStatus AS ls 
+ON l.LoanStatusId = ls.LoanStatusId
+JOIN Customer AS c
+ON l.CustomerId = c.CustomerId
+WHERE c.BranchId = @BranchId;
+    
 /*Overdue Loan Rate*/
 
 /*Średnie saldo oddziału TotalBranchBalance Ile pieniędzy znajduje się łącznie na kontach klientów tego oddziału?*/
-
+WITH CustomerBalance AS
+(
+    SELECT c.CustomerId, SUM(a.AvailableBalance) AS 'TotalBalanceForClient' FROM Customer AS c JOIN Account AS a ON c.CustomerId = a.CustomerId
+    WHERE c.BranchId = @BranchId GROUP BY c.CustomerId
+)
+SELECT SUM(TotalBalanceForClient) AS 'TotalBranchBalance', 
+AVG(TotalBalanceForClient) AS 'AverageBranchBalance' FROM CustomerBalance;
 /*Liczba rachunków
 Ile rachunków posiadają klienci tego oddziału? */
+
+WITH AccountsCountPerClient AS
+(
+    SELECT c.CustomerId, COUNT(a.AccountId) AS 'AccountsCount' FROM Customer AS c 
+    JOIN Account AS a 
+    ON c.CustomerId = a.CustomerId
+    WHERE c.BranchId = @BranchId 
+    GROUP BY c.CustomerId
+)
+
+SELECT SUM(AccountsCount) AS 'TotalAccountsCount' FROM AccountsCountPerClient;
 END;
 GO
 
@@ -153,5 +207,9 @@ GO
 
 
 EXEC dbo.BranchPerformanceReport
-    @BranchId = 1;
+    @BranchId = 2;
 
+
+    
+/*DROP PROCEDURE IF EXISTS dbo.BranchPerformanceReport;
+GO */
