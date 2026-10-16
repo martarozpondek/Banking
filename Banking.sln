@@ -20,6 +20,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tables", "Tables", "{784CBC
 		CardTransactionAuthorizationStatusHistory.sql = CardTransactionAuthorizationStatusHistory.sql
 		currency.sql = currency.sql
 		customer.sql = customer.sql
+		CustomerAudit.sql = CustomerAudit.sql
 		CustomerInteraction.sql = CustomerInteraction.sql
 		Employee.sql = Employee.sql
 		ExchangeRate.sql = ExchangeRate.sql
@@ -107,7 +108,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Deployment", "Deployment", 
 		99_RebuildDatabase.sql = 99_RebuildDatabase.sql
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Function", "Function", "{C0F99C87-EB4A-4D79-AED0-19DB318D29A7}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Functions", "Functions", "{C0F99C87-EB4A-4D79-AED0-19DB318D29A7}"
 	ProjectSection(SolutionItems) = preProject
 		GetAccountFinancialStatus.sql = GetAccountFinancialStatus.sql
 		GetCustomerAccountCount.sql = GetCustomerAccountCount.sql
@@ -139,13 +140,18 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TestData", "TestData", "{79
 		UpdateLoanStatuses.sql = UpdateLoanStatuses.sql
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Triggers", "Triggers", "{0A34EED0-02D8-4321-A1FB-68E862E07C5A}"
+	ProjectSection(SolutionItems) = preProject
+		CustomerAudit_Trigger.sql = CustomerAudit_Trigger.sql
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Default|Default = Default|Default
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{A31454E2-A19F-4C63-E8C7-980F4ADC3708}.Default|Default.ActiveCfg = Default
-		{AED7CE00-CCD6-450A-BC71-64A65F163D3C}.Default|Default.ActiveCfg = Default
+		{EDA75B1F-4D84-4401-A3C8-4CCB2DC4BBA9}.Default|Default.ActiveCfg = Default
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
