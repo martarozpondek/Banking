@@ -1,7 +1,7 @@
 CREATE TABLE CardSecurity
 (
 	CardAuthorizationId BIGINT IDENTITY(1,1) NOT NULL,
-	CardId BIGINT NOT NULL CONSTRAINT UQ_CardSecurity_Card UNIQUE(CardId),
+	CardId BIGINT NOT NULL,
 	PinRetryCount INT NOT NULL DEFAULT(0),
 	BlockedUntil DATETIMEOFFSET(0) NULL,
 	IsBlocked BIT NOT NULL DEFAULT(0),
@@ -9,7 +9,7 @@ CREATE TABLE CardSecurity
 	CreatedAt DATETIMEOFFSET(0) NOT NULL CONSTRAINT DF_CardSecurity_CreatedAt DEFAULT SYSDATETIMEOFFSET(),
 	UpdatedAt DATETIMEOFFSET(0) NULL,
 
-	CONSTRAINT PK_CardAuthorization PRIMARY KEY (CardAuthorizationId),
-	CONSTRAINT FK_CardAuthorization FOREIGN KEY (CardId) REFERENCES Card(CardId),
+	CONSTRAINT PK_CardSecurity PRIMARY KEY (CardAuthorizationId),
+	CONSTRAINT FK_CardSecurity_Card FOREIGN KEY (CardId) REFERENCES Card(CardId),
 	CONSTRAINT CK_CardSecurity_PinRetryCount CHECK(PinRetryCount BETWEEN 0 AND 3) /*PIN entry limit: 0–3 attempts */
 );
